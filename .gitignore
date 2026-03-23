@@ -1,0 +1,82 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.code-workspace
+
+# Skills (managed externally)
+.agents/
+
+# Skills lock (managed externally)
+skills-lock.json
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Lint/Cache
+.eslintcache
+.cache/
+
+# Temp files
+tmp/
+temp/
+*.tgz
+
+# Lock files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Credentials & Auth (Google Cloud)
+credentials.json
+*.credentials.json
+token.json
+auth/
+.service-account.json
+
+# MCP config local
+.mcp/
+mcp_config.json
+stitch-mcp-cli.config.json
+
+# Local configs
+.eslintrc.local
+.prettierrc.local
+.prettierignore
+.eslintignore
+
+# Node
+.npm/
+.node-version
+
+# Documentation (Spanish)
+Guía para construir un híbrido Stitch MCP + CLI*.md
+planificacion proyecto.md

@@ -1,199 +1,326 @@
-# Guía para construir un híbrido Stitch MCP + CLI (stitch-mcp-cli)
+# Guía para construir un CLI + MCP Proxy para Google Stitch
 
-## Resumen ejecutivo
+## Resumen Ejecutivo
 
-Este documento explica cómo diseñar e implementar un proyecto híbrido **MCP + CLI** para Google Stitch, enfocado en el caso `stitch-mcp-cli` que se puede usar desde múltiples IDEs y CLIs (Cursor, Claude Code, OpenCode, Antigravity, VS Code, Codex, etc.). El objetivo es que un solo paquete proporcione: (1) un servidor MCP para que los agentes vean y usen Stitch como herramienta, y (2) un CLI para automatizar setup, sincronización de diseños y scaffolding de proyectos sin depender de un IDE concreto.[^1][^2][^3][^4][^5]
+Este documento describe cómo diseñar e implementar **stitch-mcp-cli**, un CLI de última generación que proporciona acceso a Google Stitch desde cualquier IDE/CLI compatible con MCP, con capacidades avanzadas de scaffolding multi-framework que no existen en soluciones existentes.
 
-El enfoque híbrido reduce fricción para usuarios finales ("instala una vez, funciona en todos tus editores") y maximiza adoptabilidad, ya que MCP es el estándar para agentes y CLI sigue siendo la interfaz dominante para pipelines y desarrolladores avanzados.[^6][^7]
+**Diferenciación clave respecto a `@_davideast/stitch-mcp`:**
 
-## Conceptos clave
+| Aspecto | David East | stitch-mcp-cli |
+|---------|-----------|---------------|
+| Auth | OAuth + gcloud (5+ min) | API key (30 seg) |
+| Scaffolding | Solo Astro | React, Vue, Svelte, Next.js, Nuxt, etc. |
+| Offline | No | Caché local de proyectos |
+| Watch mode | No | Sync continuo |
+| Evaluaciones | No | Benchmark tools para LLMs |
 
-### Stitch y Stitch MCP
+---
 
-Stitch es una herramienta de Google Labs que genera diseños de UI y código HTML/CSS/React a partir de prompts de texto, utilizando modelos Gemini como backend. Stitch MCP es el envoltorio que expone la API de Stitch como servidor MCP, de modo que agentes en editores (Claude Code, Cursor, Gemini CLI, Antigravity, etc.) puedan llamarlo como una herramienta más dentro de su contexto.[^8][^9][^4][^10][^11]
+## Conceptos Clave
 
-En la práctica, un agente puede recibir una instrucción como "diseña un dashboard de analytics", llamar al servidor Stitch MCP, obtener el diseño + código base, y luego refinarlo o integrarlo en un proyecto existente.[^4][^8]
+### Google Stitch
+
+Stitch es una plataforma de Google Labs que genera diseños de UI y código HTML/CSS/React a partir de prompts de texto, usando Gemini como backend.
+
+**Flujo de trabajo:**
+1. Diseñador crea diseño en https://stitch.withgoogle.com
+2. Agente de IA usa MCP para acceder al diseño
+3. CLI exporta el diseño a código del framework deseado
 
 ### MCP (Model Context Protocol)
 
-MCP es un protocolo estandarizado para que clientes (editores/CLIs de IA) hablen con servidores que exponen herramientas externas: APIs, bases de datos, sistemas de archivos, etc. Cada cliente tiene su propia forma de declarar servidores MCP, pero todos comparten la misma idea: un bloque de configuración que indica comando o URL del servidor, argumentos y variables de entorno.[^12][^5][^13][^6]
+Protocolo estándar para que clientes (editores/CLIs de IA) hablen con servidores que exponen herramientas. stitch-mcp-cli actúa como **MCP Proxy**, reenviando requests al servidor oficial de Google.
 
-Ejemplos:
+### Arquitectura CLI vs MCP Proxy
 
-- **OpenCode** usa un bloque `mcp` en su archivo de configuración (`~/.config/opencode/opencode.json`) donde se define el tipo de servidor, comando y entorno.[^5]
-- **Codex CLI** usa `~/.codex/config.toml` con una sección `[mcp_servers.<id>]` donde se define `command`, `args` y opcionalmente variables de entorno para el servidor.[^13]
-- **Antigravity** usa un archivo `mcp_config.json` donde se define una entrada con `command` y `args` que referencia normalmente a un wrapper `npx` que ejecuta el servidor Stitch MCP publicado en npm.[^14]
-
-### CLI vs MCP para agentes
-
-La literatura reciente sobre MCP vs CLI distingue claramente los casos de uso:[^15][^7][^12]
-
-- MCP es ideal para **interacción dentro de IDEs/editores**, donde el agente necesita acceso continuo y estructurado a herramientas (Stitch, Figma, APIs, etc.).
-- CLI es ideal para **pipelines, scripting y tareas batch**, donde se necesitan comandos reproducibles (`sync`, `deploy`, etc.) que pueden integrarse en CI/CD o en terminales como OpenCode CLI, Codex CLI o Gemini CLI.
-
-Los benchmarks muestran que MCP suele ser algo más eficiente en tokens y latencia para uso interactivo, mientras que CLI tiende a ser más flexible para automatización y scripting avanzado.[^12][^6]
-
-El enfoque híbrido combina ambas ventajas en un solo paquete.
-
-## Arquitectura propuesta de `stitch-mcp-cli`
-
-### Componentes principales
-
-Un proyecto híbrido Stitch MCP + CLI típicamente se compone de:
-
-1. **Binario CLI** (`bin/cli.js`)
-   - Define comandos como `setup`, `mcp`, `sync` usando un parser de CLI (por ejemplo, Commander en Node.js).
-   - Llama a funciones de librería para configurar editores, lanzar el servidor MCP y sincronizar diseños.
-
-2. **Servidor MCP** (`server/mcp-server.js`)
-   - Implementa el servidor HTTP o STDIO que cumple el protocolo MCP.
-   - Encapsula llamadas a la API de Stitch (por HTTP o SDK) para generar o leer diseños.
-
-3. **Módulo de configuración multi-editor** (`lib/setup-multi.js`)
-   - Detecta IDEs/CLIs instalados (Cursor, Claude Code, OpenCode, Antigravity, VS Code, Codex, etc.) ejecutando comandos como `cursor --version` o `claude --version`.
-   - Escribe los archivos de configuración MCP correspondientes para cada cliente detectado, apuntando al servidor `stitch-mcp-cli` local o remoto.[^5][^13][^14]
-
-4. **Módulo de sincronización/scaffolding** (`lib/sync.js`)
-   - Implementa comandos tipo `sync <design-name>` que llaman a Stitch para obtener diseños/código y los guardan en el árbol de archivos del proyecto.
-   - Opcionalmente aplica plantillas opinionadas (React/Next.js, etc.).
-
-5. **Configuración de proyecto (package.json)**
-   - Declara el binario CLI, dependencias y scripts de desarrollo.
-   - Define palabras clave y metadata para SEO (npm + GitHub).
-
-### Flujo de uso esperado
-
-1. El usuario instala el paquete de forma global o local con npm.
-2. Ejecuta `stitch-mcp-cli setup`, que:
-   - Verifica credenciales/API key de Stitch.
-   - Detecta los IDEs/CLIs instalados.
-   - Escribe la configuración MCP en los archivos adecuados (OpenCode, Claude, Cursor, Antigravity, VS Code, Codex, etc.).[^13][^14][^5]
-3. Ejecuta `stitch-mcp-cli mcp` para lanzar el servidor MCP.
-4. Desde el IDE, el agente ya ve "Stitch" como herramienta MCP y puede llamarla.
-5. Opcionalmente, el usuario usa `stitch-mcp-cli sync "Nombre de diseño"` para bajar diseños/código de Stitch a su proyecto.
-
-## Guía paso a paso de implementación
-
-### 1. Preparar el repositorio y entorno
-
-**Requisitos previos:**
-
-- Node.js 18 o superior.[^3]
-- Cuenta en Stitch (stitch.withgoogle.com) con al menos un proyecto.[^9]
-- Cuenta en GitHub y npm para publicar el paquete.
-
-**Pasos iniciales:**
-
-1. Crear repositorio GitHub público, por ejemplo `berriosb/stitch-mcp-cli`.
-2. Inicializar proyecto Node:
-   - `npm init -y` o crear manualmente `package.json`.
-   - Añadir `.gitignore` para Node (`node_modules`, etc.).
-
-Ejemplo mínimo de `package.json` para un CLI híbrido:
-
-```json
-{
-  "name": "stitch-mcp-cli",
-  "version": "0.1.0",
-  "description": "Universal Stitch MCP + CLI: auto-config multi-IDE + sync diseños → scaffolding de proyectos.",
-  "main": "index.js",
-  "bin": {
-    "stitch-mcp-cli": "./bin/cli.js"
-  },
-  "scripts": {
-    "start": "node bin/cli.js",
-    "mcp": "node server/mcp-server.js"
-  },
-  "keywords": [
-    "stitch",
-    "mcp",
-    "cli",
-    "cursor",
-    "claude",
-    "opencode",
-    "antigravity",
-    "vscode",
-    "codex"
-  ],
-  "license": "MIT"
-}
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        IDE / Coding Agent                        │
+│   (Cursor, Claude Code, OpenCode, Antigravity, Codex CLI)        │
+└───────────────────────────────┬─────────────────────────────────┘
+                                 │ MCP (JSON-RPC over stdio)
+                                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     stitch-mcp-cli                               │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌────────────────┐ │
+│  │ MCP Proxy       │  │ CLI Commands    │  │ Template       │ │
+│  │ (StitchProxy)   │  │ (Commander)    │  │ Engine         │ │
+│  └─────────────────┘  └─────────────────┘  └────────────────┘ │
+└───────────────────────────────┬─────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│           Remote MCP Server (Stitch Official)                    │
+│           https://stitch.googleapis.com/mcp                       │
+│           (Autenticación: X-Goog-Api-Key header)                │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Implementar el binario CLI
+**Nota**: Stitch es un **Remote MCP Server** (no local). Se conecta via HTTP a `https://stitch.googleapis.com/mcp` usando API Key en el header `X-Goog-Api-Key`.
 
-Para Node.js, es común usar `commander` o `yargs` para definir comandos.
+---
 
-Estructura básica de `bin/cli.js`:
+## Implementación Paso a Paso
 
-```js
+### 1. Inicialización del Proyecto
+
+El proyecto soporta **npm**, **pnpm** y **yarn**:
+
+```bash
+mkdir stitch-mcp-cli && cd stitch-mcp-cli
+
+# npm (default)
+npm init -y
+npm install @google/stitch-sdk @modelcontextprotocol/sdk commander zod dotenv
+npm install --save-dev typescript @types/node tsx vitest
+npx tsc --init
+
+# pnpm (recomendado - genera pnpm-lock.yaml)
+pnpm init
+pnpm add @google/stitch-sdk @modelcontextprotocol/sdk commander zod dotenv
+pnpm add -D typescript @types/node tsx vitest
+pnpm exec tsc --init
+
+# yarn
+yarn init
+yarn add @google/stitch-sdk @modelcontextprotocol/sdk commander zod dotenv
+yarn add -D typescript @types/node tsx vitest
+yarn tsc --init
+```
+
+### 2. MCP Proxy (src/index.ts)
+
+El proxy es el punto de entrada cuando se usa como servidor MCP:
+
+```typescript
 #!/usr/bin/env node
+import { StitchProxy } from "@google/stitch-sdk";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
-const { program } = require('commander');
-const { setupMulti } = require('../lib/setup-multi');
-const { startMCPServer } = require('../server/mcp-server');
-const { syncDesign } = require('../lib/sync');
+const apiKey = process.env.STITCH_API_KEY;
+
+if (!apiKey) {
+  console.error("Error: STITCH_API_KEY not configured");
+  console.error("Run: stitch-mcp-cli auth --api-key <your-key>");
+  process.exit(1);
+}
+
+const proxy = new StitchProxy({ apiKey });
+const transport = new StdioServerTransport();
+
+await proxy.start(transport);
+```
+
+### 3. CLI Entry Point (src/bin/cli.ts)
+
+```typescript
+#!/usr/bin/env node
+import { Command } from "commander";
+import { auth } from "../commands/auth.js";
+import { setup } from "../commands/setup.js";
+import { projects } from "../commands/projects.js";
+import { generate } from "../commands/generate.js";
+import { sync } from "../commands/sync.js";
+import { exportCmd } from "../commands/export.js";
+import { watch } from "../commands/watch.js";
+import { cache } from "../commands/cache.js";
+import { evalCmd } from "../commands/eval.js";
+
+const program = new Command();
 
 program
-  .name('stitch-mcp-cli')
-  .description('Universal Stitch MCP + CLI');
+  .name("stitch-mcp-cli")
+  .description("CLI + MCP proxy for Google Stitch with multi-framework scaffolding")
+  .version("0.1.0");
 
-program
-  .command('setup')
-  .description('Auto-configurar MCP en IDEs/CLIs compatibles')
-  .action(setupMulti);
-
-program
-  .command('mcp')
-  .description('Lanzar servidor Stitch MCP local')
-  .action(startMCPServer);
-
-program
-  .command('sync <designName>')
-  .description('Sincronizar diseño de Stitch al proyecto actual')
-  .option('--output <dir>', 'Directorio destino', 'src')
-  .action((designName, options) => syncDesign(designName, options));
+program.command("auth").description("Configure API key").action(auth);
+program.command("setup").description("Setup IDEs").action(setup);
+program.command("projects").description("List projects").action(projects);
+program.command("generate").description("Generate screen").action(generate);
+program.command("sync").description("Sync to files").action(sync);
+program.command("export").description("Export to framework").action(exportCmd);
+program.command("watch").description("Watch mode").action(watch);
+program.command("cache").description("Manage cache").action(cache);
+program.command("eval").description("Run evaluations").action(evalCmd);
 
 program.parse();
 ```
 
-Este CLI expone tres comandos principales que cubren el flujo híbrido básico.
+### Seguridad de API Keys
 
-### 3. Implementar el módulo de configuración multi-editor
+**IMPORTANTE**: Sigue estas prácticas de seguridad de Google Cloud:
 
-El objetivo de `setupMulti` es:
+1. **NUNCA** incluir API keys en código
+2. **NUNCA** subir keys al repositorio
+3. El SDK usa **header HTTP** `x-goog-api-key`, no query params
+4. Añade **restricciones** a la key en Google Cloud Console
+5. **Rota** la key cada 90 días
+6. **Monitoriza** el uso en Cloud Logging
 
-1. Detectar qué clientes MCP están instalados en la máquina (Cursor, Claude Code, OpenCode, Antigravity, VS Code, Codex, etc.).
-2. Escribir la configuración MCP correspondiente apuntando al servidor `stitch-mcp-cli`.
+#### Configuración Segura
 
-Patrones de configuración de referencia:
+```bash
+# La API key se guarda en ~/.stitch-mcp-cli/config.json
+# El directorio ~/.stitch-mcp-cli está en .gitignore (directorio home)
+# NUNCA subas este archivo a git
+```
 
-- **Codex CLI** usa `~/.codex/config.toml` con bloques `[mcp_servers.<id>]` que definen el comando y argumentos para lanzar un servidor MCP STDIO o HTTP.[^13]
-- **OpenCode** usa `~/.config/opencode/opencode.json` con un objeto `mcp` en el que cada servidor se define como `local` (con `command` y `environment`) o `remote` (con `url` y `headers`).[^5]
-- **Antigravity** usa `mcp_config.json` donde se define un campo `command` y `args` que normalmente apuntan a un script `npx` que inicia el servidor Stitch MCP.[^14]
+#### Restricciones Recomendadas (GCP Console)
 
-El módulo puede seguir este patrón genérico:
+1. Ve a Google Cloud Console > APIs & Services > Credentials
+2. Edita tu API key de Stitch
+3. En "API restrictions": selecciona solo Stitch API
+4. En "Application restrictions": configura según necesidad
 
-```js
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const { execSync } = require('child_process');
+---
 
-const MCP_URL = 'http://localhost:3001';
+### Configuración de IDEs con API Key
 
-const editors = [
-  { name: 'cursor', cmd: 'cursor', path: path.join(os.homedir(), '.cursor', 'mcp.json'), type: 'json' },
-  { name: 'claude', cmd: 'claude', path: path.join(os.homedir(), '.claude', 'claude_desktop_config.json'), type: 'json' },
-  { name: 'opencode', cmd: 'opencode', path: path.join(os.homedir(), '.config', 'opencode', 'opencode.json'), type: 'json' },
-  { name: 'antigravity', cmd: 'antigravity', path: path.join(os.homedir(), '.antigravity', 'mcp_config.json'), type: 'json' },
-  { name: 'codex', cmd: 'codex', path: path.join(os.homedir(), '.codex', 'config.toml'), type: 'toml' }
-  // Se pueden añadir Zed, VS Code, Trae, Kilo Code, etc.
+#### Cursor
+```json
+{
+  "mcpServers": {
+    "stitch": {
+      "url": "https://stitch.googleapis.com/mcp",
+      "headers": {
+        "X-Goog-Api-Key": "YOUR-API-KEY"
+      }
+    }
+  }
+}
+```
+
+#### VSCode
+```json
+{
+  "servers": {
+    "stitch": {
+      "url": "https://stitch.googleapis.com/mcp",
+      "type": "http",
+      "headers": {
+        "Accept": "application/json",
+        "X-Goog-Api-Key": "YOUR-API-KEY"
+      }
+    }
+  }
+}
+```
+
+#### Claude Code
+```bash
+claude mcp add stitch --transport http https://stitch.googleapis.com/mcp --header "X-Goog-Api-Key: api-key" -s user
+```
+
+#### Antigravity
+```json
+{
+  "mcpServers": {
+    "stitch": {
+      "serverUrl": "https://stitch.googleapis.com/mcp",
+      "headers": {
+        "X-Goog-Api-Key": "YOUR-API-KEY"
+      }
+    }
+  }
+}
+```
+
+#### Gemini CLI
+```bash
+gemini extensions install https://github.com/gemini-cli-extensions/stitch
+```
+
+---
+
+### 4. Auth Command (src/commands/auth.ts)
+
+```typescript
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { StitchToolClient } from "@google/stitch-sdk";
+
+const CONFIG_DIR = path.join(os.homedir(), ".stitch-mcp-cli");
+const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
+
+interface Config {
+  apiKey?: string;
+}
+
+function loadConfig(): Config {
+  try {
+    return JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
+  } catch {
+    return {};
+  }
+}
+
+function saveConfig(config: Config): void {
+  if (!fs.existsSync(CONFIG_DIR)) {
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  }
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+}
+
+export async function auth(options: { apiKey?: string; check?: boolean }) {
+  if (options.check) {
+    const config = loadConfig();
+    if (!config.apiKey) {
+      console.log("❌ API key not configured");
+      process.exit(1);
+    }
+
+    try {
+      const client = new StitchToolClient({ apiKey: config.apiKey });
+      await client.listTools();
+      console.log("✅ API key configured and valid");
+      await client.close();
+    } catch {
+      console.log("❌ API key is invalid");
+      process.exit(1);
+    }
+    return;
+  }
+
+  if (!options.apiKey) {
+    console.error("Usage: stitch-mcp-cli auth --api-key <key>");
+    process.exit(1);
+  }
+
+  saveConfig({ apiKey: options.apiKey });
+  console.log("✅ API key saved to ~/.stitch-mcp-cli/config.json");
+}
+```
+
+### 5. Setup Multi-Editor (src/commands/setup.ts)
+
+```typescript
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { execSync } from "child_process";
+
+interface Editor {
+  name: string;
+  cmd: string;
+  configPath: string;
+  format: "json" | "toml";
+}
+
+const EDITORS: Editor[] = [
+  { name: "Cursor", cmd: "cursor", configPath: ".cursor/mcp.json", format: "json" },
+  { name: "Claude Code", cmd: "claude", configPath: ".claude/claude_desktop_config.json", format: "json" },
+  { name: "VS Code", cmd: "code", configPath: ".config/Code/User/global.json", format: "json" },
+  { name: "OpenCode", cmd: "opencode", configPath: ".config/opencode/opencode.json", format: "json" },
+  { name: "Kilo Code", cmd: "kilo", configPath: ".config/opencode/opencode.json", format: "json" },
+  { name: "Antigravity", cmd: "antigravity", configPath: ".antigravity/mcp_config.json", format: "json" },
+  { name: "Codex CLI", cmd: "codex", configPath: ".codex/config.toml", format: "toml" },
 ];
 
-function detectEditors() {
-  return editors.filter(ed => {
+function detectEditors(): Editor[] {
+  return EDITORS.filter((editor) => {
     try {
-      execSync(`${ed.cmd} --version`, { stdio: 'ignore' });
+      execSync(`${editor.cmd} --version`, { stdio: "ignore" });
       return true;
     } catch {
       return false;
@@ -201,299 +328,433 @@ function detectEditors() {
   });
 }
 
-function writeConfig(ed, url) {
-  const dir = path.dirname(ed.path);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-  if (ed.type === 'toml') {
-    // Codex: añadir bloque [mcp_servers.stitch]
-    const tomlBlock = `\n[mcp_servers.stitch]\ncommand = "npx"\nargs = ["stitch-mcp-cli", "mcp"]\nstartup_timeout_sec = 20\n`;
-    fs.appendFileSync(ed.path, tomlBlock);
-  } else {
-    // JSON: insertar/actualizar sección mcp.stitch
-    let json = {};
-    if (fs.existsSync(ed.path)) {
-      try { json = JSON.parse(fs.readFileSync(ed.path, 'utf8')); } catch (e) {}
-    }
-
-    json.mcp = json.mcp || {};
-    json.mcp.stitch = {
-      type: 'local',
-      command: ['npx', 'stitch-mcp-cli', 'mcp'],
-      enabled: true,
-      timeout: 5000
-    };
-
-    fs.writeFileSync(ed.path, JSON.stringify(json, null, 2));
-  }
-}
-
-async function setupMulti() {
+export async function setup(options: { editor?: string; verbose?: boolean }) {
   const detected = detectEditors();
+
   if (detected.length === 0) {
-    console.log('No se detectaron IDEs MCP, configure manualmente.');
+    console.log("No compatible IDEs detected.");
+    console.log("Manually add stitch-mcp-cli to your MCP config.");
     return;
   }
 
-  detected.forEach(ed => writeConfig(ed, MCP_URL));
+  const targetEditors = options.editor
+    ? detected.filter((e) => e.name.toLowerCase() === options.editor.toLowerCase())
+    : detected;
 
-  console.log('Configuración MCP Stitch aplicada a:', detected.map(d => d.name).join(', '));
-}
+  for (const editor of targetEditors) {
+    const configPath = path.join(os.homedir(), editor.configPath);
+    const configDir = path.dirname(configPath);
 
-module.exports = { setupMulti };
-```
-
-Este esquema se basa en cómo Codex y OpenCode esperan que se definan los servidores MCP según su documentación oficial.[^5][^13]
-
-### 4. Implementar el servidor MCP básico
-
-La implementación concreta del protocolo MCP puede hacerse usando SDKs oficiales o wrappers, pero a alto nivel se trata de exponer:
-
-- Un endpoint HTTP o proceso STDIO que responda a peticiones `list_tools` y `call_tool`.
-- Una herramienta principal que haga de proxy hacia la API de Stitch (por ejemplo, `generate_ui` o `get_design`).[^8][^4]
-
-Un servidor mínimo vía HTTP podría tener esta forma conceptual (simplificada):
-
-```js
-const express = require('express');
-const bodyParser = require('body-parser');
-
-function startMCPServer() {
-  const app = express();
-  app.use(bodyParser.json());
-
-  app.post('/mcp/list_tools', (req, res) => {
-    res.json({
-      tools: [
-        {
-          name: 'stitch_generate_ui',
-          description: 'Genera UI y código a partir de un prompt usando Google Stitch',
-          input_schema: {
-            type: 'object',
-            properties: {
-              prompt: { type: 'string' },
-              projectId: { type: 'string' }
-            },
-            required: ['prompt']
-          }
-        }
-      ]
-    });
-  });
-
-  app.post('/mcp/call_tool', async (req, res) => {
-    const { name, arguments: args } = req.body;
-
-    if (name === 'stitch_generate_ui') {
-      const result = await callStitchAPI(args);
-      res.json({
-        content: [
-          { type: 'text', text: result.html },
-          { type: 'text', text: result.css }
-        ]
-      });
-    } else {
-      res.status(400).json({ error: 'Tool not found' });
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
     }
-  });
 
-  const port = process.env.STITCH_MCP_PORT || 3001;
-  app.listen(port, () => {
-    console.log(`Stitch MCP server escuchando en http://localhost:${port}`);
-  });
+    let config: string;
+    if (editor.format === "toml") {
+      config = `\n[[mcp_servers.stitch]]\ncommand = "npx"\nargs = ["stitch-mcp-cli"]\n`;
+    } else {
+      config = JSON.stringify({
+        mcpServers: {
+          stitch: {
+            command: "npx",
+            args: ["stitch-mcp-cli"],
+            env: { STITCH_API_KEY: "${STITCH_API_KEY}" },
+          },
+        },
+      }, null, 2);
+    }
+
+    fs.writeFileSync(configPath, config);
+    console.log(options.verbose ? `✅ ${editor.name}: ${configPath}` : `✅ ${editor.name}`);
+  }
+
+  console.log(`\nConfigured ${targetEditors.length} IDE(s)`);
+  console.log("\nNext steps:");
+  console.log("1. Run: stitch-mcp-cli auth --api-key <your-key>");
+  console.log("2. Restart your IDE");
+}
+```
+
+### 6. Generate Command (src/commands/generate.ts)
+
+```typescript
+import { stitch } from "@google/stitch-sdk";
+
+export async function generate(
+  prompt: string,
+  options: { projectId?: string; device?: "mobile" | "desktop" | "tablet" }
+) {
+  if (!prompt) {
+    console.error("Error: prompt required");
+    process.exit(1);
+  }
+
+  try {
+    let project;
+
+    if (options.projectId) {
+      project = stitch.project(options.projectId);
+    } else {
+      const projects = await stitch.projects();
+      if (projects.length === 0) {
+        console.error("No projects. Create one at stitch.withgoogle.com");
+        process.exit(1);
+      }
+      project = projects[0];
+      console.log(`Using project: ${project.id}`);
+    }
+
+    console.log("Generating screen...");
+    const screen = await project.generate(prompt, {
+      deviceType: options.device?.toUpperCase() as any,
+    });
+
+    console.log(`\n✅ Screen generated: ${screen.id}`);
+    console.log(`   Project ID: ${screen.projectId}`);
+    console.log(`   Screen ID: ${screen.screenId}`);
+  } catch (error) {
+    console.error("Error:", error instanceof Error ? error.message : error);
+    process.exit(1);
+  }
+}
+```
+
+### 7. Template Engine (src/lib/template-engine.ts)
+
+```typescript
+interface TransformOptions {
+  framework: "react" | "vue" | "svelte" | "nextjs" | "vanilla";
+  componentName: string;
+  html: string;
+  css?: string;
 }
 
-module.exports = { startMCPServer };
-```
+export async function transformToFramework(options: TransformOptions): Promise<string> {
+  const { framework, componentName, html, css } = options;
 
-La función `callStitchAPI` encapsularía las llamadas HTTP o SDK a Stitch, usando credenciales obtenidas vía Google Cloud (Application Default Credentials, OAuth, etc.), tal como muestran ejemplos de proxy en Antigravity que ejecutan `npx @_davideast/stitch-mcp`.[^14]
-
-### 5. Implementar `sync` para scaffolding de proyectos
-
-El comando `sync` puede tener distintas profundidades, desde algo muy simple (guardar el HTML/CSS generado) hasta algo sofisticado (mapear a componentes React/Next.js con rutas, layouts y hooks).
-
-Una versión mínima podría:
-
-1. Llamar a la herramienta MCP `stitch_generate_ui` con un prompt o identificador de diseño.
-2. Guardar el resultado en el directorio indicado por `--output`, por ejemplo `src/components/StitchDesign.jsx` y `src/styles/stitch.css`.
-
-Pseudocódigo:
-
-```js
-const fs = require('fs');
-const path = require('path');
-
-async function syncDesign(designName, { output }) {
-  console.log(`Sincronizando diseño "${designName}" desde Stitch...`);
-
-  const result = await callStitchAPI({ prompt: designName });
-
-  const outDir = output || 'src';
-  if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-
-  fs.writeFileSync(path.join(outDir, 'StitchDesign.html'), result.html);
-  if (result.css) fs.writeFileSync(path.join(outDir, 'stitch.css'), result.css);
-
-  console.log('Diseño guardado en', outDir);
+  switch (framework) {
+    case "react":
+      return transformToReact(componentName, html, css);
+    case "vue":
+      return transformToVue(componentName, html, css);
+    case "svelte":
+      return transformToSvelte(componentName, html, css);
+    case "nextjs":
+      return transformToNextjs(componentName, html, css);
+    default:
+      return html;
+  }
 }
 
-module.exports = { syncDesign };
+function transformToReact(name: string, html: string, css?: string): string {
+  return `import React from 'react';
+
+export function ${name}() {
+  return (
+    <div className="${name.toLowerCase()}">
+      <style>{${JSON.stringify(css || "")}}</style>
+      ${htmlToJsx(html)}
+    </div>
+  );
+}
+`;
+}
+
+function transformToVue(name: string, html: string, css?: string): string {
+  return `<template>
+  <div class="${name.toLowerCase()}">
+    <style>${css || ""}</style>
+    ${html}
+  </div>
+</template>
+
+<script setup lang="ts">
+// Component: ${name}
+</script>
+`;
+}
+
+function transformToSvelte(name: string, html: string, css?: string): string {
+  return `<script setup lang="ts">
+// Component: ${name}
+</script>
+
+<style>
+${css || ""}
+</style>
+
+<div class="${name.toLowerCase()}">
+  ${html}
+</div>
+`;
+}
+
+function transformToNextjs(name: string, html: string, css?: string): string {
+  return `export default function ${name}() {
+  return (
+    <div className="${name.toLowerCase()}">
+      <style jsx>{${JSON.stringify(css || "")}}</style>
+      ${htmlToJsx(html)}
+    </div>
+  );
+}
+`;
+}
+
+function htmlToJsx(html: string): string {
+  return html
+    .replace(/class=/g, "className=")
+    .replace(/for=/g, "htmlFor=");
+}
 ```
 
-A partir de aquí se pueden añadir plantillas específicas (React/Next.js, Vue, Svelte, Flutter) como capas opcionales sin que el servidor MCP tenga que cambiar; el servidor sigue devolviendo datos neutrales (HTML/CSS/tokens) y el CLI hace el mapeo a frameworks.
+### 8. Export Command (src/commands/export.ts)
 
-## Ventajas del enfoque híbrido MCP + CLI
+```typescript
+import fs from "fs";
+import path from "path";
+import { stitch } from "@google/stitch-sdk";
+import { transformToFramework } from "../lib/template-engine.js";
 
-### 1. Un solo paquete cubre IDEs y pipelines
+export async function exportCmd(
+  projectId: string,
+  options: { framework: string; output: string; routes?: string }
+) {
+  if (!projectId) {
+    console.error("Usage: stitch-mcp-cli export <project-id> --framework react --output ./components");
+    process.exit(1);
+  }
 
-- Los IDEs/CLIs con soporte MCP (Cursor, Claude Code, OpenCode, Antigravity, VS Code Copilot, Codex CLI, etc.) pueden conectarse al mismo servidor `stitch-mcp-cli` mediante sus archivos de configuración nativos.[^3][^13][^5]
-- El CLI permite integrar Stitch en pipelines de CI/CD y scripts (por ejemplo, `stitch-mcp-cli sync` en un workflow de GitHub Actions o en un script de build local), algo que MCP puro no cubre de forma directa.[^7][^6]
+  const project = stitch.project(projectId);
+  const screens = await project.screens();
 
-### 2. Menos fricción para el usuario final
+  const outputDir = options.output || "./stitch-export";
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
 
-Los usuarios suelen encontrar tedioso configurar MCP manualmente en cada editor (paths, comandos, variables de entorno). Un comando `setup` que auto-detecta IDEs y escribe config reduce drásticamente esa fricción y aumenta la probabilidad de adopción.[^4][^15]
+  const framework = (options.framework || "react").toLowerCase() as any;
 
-En Antigravity, por ejemplo, la configuración manual requiere escribir a mano `mcp_config.json` y crear un script shell que exporte variables de entorno y ejecute `npx @_davideast/stitch-mcp` con los parámetros correctos. Un CLI que genere automáticamente esa entrada y script simplifica mucho el onboarding.[^14]
+  for (const screen of screens) {
+    const html = await screen.getHtml();
+    const componentName = `Screen${screen.id.slice(0, 8)}`;
+    const code = await transformToFramework({ framework, componentName, html });
 
-### 3. Extensibilidad por capas
+    const ext = framework === "react" || framework === "nextjs" ? "tsx" : "vue";
+    fs.writeFileSync(path.join(outputDir, `${componentName}.${ext}`), code);
+  }
 
-- El servidor MCP puede mantenerse delgado, centrado en exponer herramientas básicas de Stitch (generar UI, leer diseños, etc.).[^8][^4]
-- El CLI encima puede añadir 
-  - plantillas de scaffolding por framework,
-  - integración con sistemas de despliegue,
-  - comandos de diagnóstico o benchmarking.
-
-Esto permite evolucionar ciertas funcionalidades sin forzar a todos los clientes MCP a actualizar sus integraciones específicas.
-
-### 4. Multi-editor y multi-framework sin "lock-in"
-
-Dado que el servidor MCP habla en términos neutrales (herramientas con schemas JSON), cualquier cliente MCP puede usarlo, y cualquier framework puede ser soportado a nivel de CLI usando transformaciones adicionales.[^6][^12]
-
-El usuario puede empezar usando Stitch con Claude Code o Cursor, y más tarde mover su flujo a OpenCode, Antigravity o VS Code sin cambiar de servidor ni CLI; solo ajusta o vuelve a ejecutar `setup`.
-
-### 5. Alineado con la evolución del ecosistema
-
-Tanto la documentación de MCP como las guías de Codex y OpenCode enfatizan que MCP está diseñado para ser agnóstico del cliente, y que la forma recomendada de conectar herramientas externas es a través de servidores estándar, no integraciones ad-hoc por editor.[^12][^6][^13][^5]
-
-Un proyecto híbrido Stitch MCP + CLI se sitúa justo en esa dirección: un servidor estándar + un CLI fino que automatiza la configuración y añade valor de developer experience.
-
-## README sugerido para `stitch-mcp-cli`
-
-```markdown
-# stitch-mcp-cli 🧵
-
-**Universal Stitch MCP + CLI**
-
-Híbrido MCP + CLI para conectar Google Stitch con tus agentes de código y tus pipelines:
-
-- `stitch-mcp-cli setup` → auto-configura MCP en **Cursor, Claude Code, OpenCode, Antigravity, VS Code, Codex CLI** (y más) en un solo paso.
-- `stitch-mcp-cli mcp` → lanza el servidor Stitch MCP local para cualquier cliente compatible.
-- `stitch-mcp-cli sync` → sincroniza diseños de Stitch a tu proyecto (HTML/CSS/tokens, listo para mapear a React/Next.js/Vue/etc.).
-
-## ✨ ¿Por qué un enfoque híbrido (MCP + CLI)?
-
-- **Un solo paquete para todo**: el mismo proyecto te da un **servidor MCP estándar** para editores y un **CLI** para scripts, CI/CD y terminal. No tienes que instalar cosas distintas para IDE y pipeline.
-- **Multi-editor real**: el comando `setup` detecta editores/CLIs MCP (Cursor, Claude Code, OpenCode, Antigravity, VS Code, Codex, etc.) y escribe sus configs nativas para apuntar a `stitch-mcp-cli`.
-- **Multi-framework por diseño**: el servidor MCP devuelve datos neutrales (HTML/CSS/tokens) desde Stitch, y el CLI se encarga del scaffolding. Puedes mapear esos resultados a React/Next.js, Vue, Svelte, Flutter o lo que uses en tu stack.
-- **Menos fricción, más adopción**: configurar MCP a mano en cada IDE es tedioso. Con `stitch-mcp-cli setup` lo haces una vez y ya puedes escribir "usa stitch" en tu agente, sin tocar archivos de config.
-
-## 🚀 Quickstart
-
-```bash
-npm install -g stitch-mcp-cli
-
-# 1) Configurar MCP en todos los IDEs/CLIs detectados
-stitch-mcp-cli setup
-
-# 2) Lanzar el servidor Stitch MCP local
-stitch-mcp-cli mcp
-
-# 3) Sincronizar un diseño de Stitch al proyecto actual
-stitch-mcp-cli sync "Landing Page" --output src/stitch
+  console.log(`✅ Exported ${screens.length} screens to ${outputDir}`);
+  console.log(`   Framework: ${framework}`);
+}
 ```
 
-Luego, en tu editor (Cursor, Claude Code, OpenCode, Antigravity, etc.), puedes pedirle al agente:
+### 9. Watch Mode (src/commands/watch.ts)
 
-> Usa el MCP `stitch` para generar o actualizar el diseño de la landing.
+```typescript
+import { stitch } from "@google/stitch-sdk";
+import { transformToFramework } from "../lib/template-engine.js";
+import fs from "fs";
+import path from "path";
 
-## ⚙️ Comandos
+export async function watch(
+  projectId: string,
+  options: { output: string; framework?: string }
+) {
+  if (!projectId) {
+    console.error("Usage: stitch-mcp-cli watch <project-id> --output ./src");
+    process.exit(1);
+  }
 
-### `setup`
+  console.log(`👀 Watching project ${projectId} for changes...`);
+  console.log(`   Output: ${options.output}`);
+  console.log(`   Press Ctrl+C to stop`);
 
-Detecta IDEs/CLIs compatibles y escribe las configuraciones MCP necesarias para apuntar a `stitch-mcp-cli`.
+  const project = stitch.project(projectId);
+  const framework = (options.framework || "react").toLowerCase() as any;
 
-Ejemplos:
+  let lastScreenCount = 0;
 
-```bash
-stitch-mcp-cli setup
-# Salida esperada:
-# ✅ cursor: ~/.cursor/mcp.json
-# ✅ claude: ~/.claude/claude_desktop_config.json
-# ✅ opencode: ~/.config/opencode/opencode.json
-# ...
+  setInterval(async () => {
+    try {
+      const screens = await project.screens();
+      
+      if (screens.length !== lastScreenCount) {
+        console.log(`\n📱 ${screens.length} screens detected`);
+        lastScreenCount = screens.length;
+
+        for (const screen of screens) {
+          const html = await screen.getHtml();
+          const componentName = `Screen${screen.id.slice(0, 8)}`;
+          const code = await transformToFramework({ framework, componentName, html });
+
+          const ext = framework === "react" || framework === "nextjs" ? "tsx" : "vue";
+          const filePath = path.join(options.output, `${componentName}.${ext}`);
+          fs.writeFileSync(filePath, code);
+        }
+
+        console.log(`✅ Synced ${screens.length} screens`);
+      }
+    } catch (error) {
+      console.error("Watch error:", error instanceof Error ? error.message : error);
+    }
+  }, 5000);
+
+  process.on("SIGINT", () => {
+    console.log("\n\n👋 Stopped watching");
+    process.exit(0);
+  });
+}
 ```
-
-### `mcp`
-
-Lanza el servidor Stitch MCP como proceso local (HTTP o STDIO según tu configuración).
-
-```bash
-stitch-mcp-cli mcp
-# Escuchando en http://localhost:3001
-```
-
-### `sync <designName>`
-
-Sincroniza un diseño de Stitch con el proyecto actual. Por defecto guarda HTML/CSS/tokens en `src/`, pero se puede personalizar.
-
-```bash
-stitch-mcp-cli sync "Dashboard de Analytics" --output src/stitch
-```
-
-## 🧱 Roadmap
-
-- [ ] Soporte avanzado de scaffolding por framework (React/Next.js, Vue/Nuxt, SvelteKit, Flutter).
-- [ ] Integraciones de despliegue (Vercel, Cloudflare, etc.).
-- [ ] Modo "watch" para actualizar el código cuando cambie el diseño en Stitch.
-
-## 📝 Licencia
-
-MIT
-```
-
-Este README explica claramente el valor del enfoque híbrido, los comandos principales y cómo se relaciona con la configuración multi-editor y multi-framework.
 
 ---
 
-## References
+## Mejores Prácticas
 
-1. [davideast/stitch-mcp](https://github.com/davideast/stitch-mcp) - # Set up authentication and MCP client config npx @_davideast/stitch-mcp ... Supported clients: VS C...
+### Validación de Input
 
-2. [Stitch MCP Helper CLI | MCP Servers](https://lobehub.com/mcp/davideast-stitch-mcp)
+```typescript
+import { z } from "zod";
 
-3. [Stitch MCP Practical Guide — From Installation to UI Generation](https://blog.sotaaz.com/post/stitch-mcp-guide-en) - Stitch MCP connects it to AI coding agents (Claude Code, Cursor, Gemini CLI, etc.) as an MCP server....
+const GenerateSchema = z.object({
+  prompt: z.string().min(1, "Prompt cannot be empty"),
+  projectId: z.string().optional(),
+  device: z.enum(["mobile", "desktop", "tablet"]).optional(),
+});
 
-4. [The Stitch MCP Update That Gave AI Agents “Eyes”](https://www.reddit.com/r/AISEOInsider/comments/1qlrh3l/the_stitch_mcp_update_that_gave_ai_agents_eyes/) - Yes. It supports Cursor, VS Code, Gemini CLI, Claude Code, and any other MCP-compatible client. Wher...
+export async function generateRaw(args: unknown) {
+  const { prompt, projectId, device } = GenerateSchema.parse(args);
+  // Use validated args
+}
+```
 
-5. [MCP servers - OpenCode](https://opencode.ai/docs/mcp-servers/) - Add local and remote MCP tools.
+### Manejo de Errores
 
-6. [MCP vs CLI Tools: Which is best for production applications?](https://www.runlayer.com/blog/mcp-vs-cli-for-ai-agents-choosing-the-right-interface) - A single-tool MCP can avoid these issues by exposing one tool whose input is a well-known programmin...
+```typescript
+import { StitchError } from "@google/stitch-sdk";
 
-7. [MCP vs. CLI: When to Use Them and Why](https://www.descope.com/blog/post/mcp-vs-cli) - Besides the schema overhead being a non-issue, MCP solves problems CLI doesn't attempt to address. T...
+try {
+  await operation();
+} catch (error) {
+  if (error instanceof StitchError) {
+    switch (error.code) {
+      case "AUTH_FAILED":
+        console.error("Auth failed. Run: stitch-mcp-cli auth --api-key <key>");
+        break;
+      case "NOT_FOUND":
+        console.error("Project not found");
+        break;
+      case "RATE_LIMITED":
+        console.error("Rate limited. Wait and try again.");
+        break;
+      default:
+        console.error(`Error: ${error.message}`);
+    }
+  }
+  process.exit(1);
+}
+```
 
-8. [Design-to-Code con Antigravity y Stitch MCP](https://codelabs.developers.google.com/design-to-code-with-antigravity-stitch?hl=es_419) - Crea una aplicación web profesional que combine el diseño de IA y la programación autónoma. Usarás G...
+### Configuración Multi-IDE
 
-9. [Stitch - Design with AI - Google](https://stitch.withgoogle.com) - Stitch generates UIs for mobile and web applications, making design ideation fast and easy.
+| IDE | Config Path | Format |
+|-----|-------------|--------|
+| Cursor | `~/.cursor/mcp.json` | JSON |
+| Claude Code | `~/.claude/claude_desktop_config.json` | JSON |
+| VS Code | `~/.config/Code/User/global.json` | JSON |
+| OpenCode | `~/.config/opencode/opencode.json` | JSON |
+| Kilo Code | `~/.config/opencode/opencode.json` | JSON |
+| Antigravity | `~/.antigravity/mcp_config.json` | JSON |
+| Codex CLI | `~/.codex/config.toml` | TOML |
 
-10. [Introducing “vibe design” with Stitch - Google Blog](https://blog.google/innovation-and-ai/models-and-research/google-labs/stitch-ai-ui-design/) - Stitch is evolving into an AI-native platform that allows anyone to create, iterate, and collaborate...
+#### OpenCode / Kilo Code
+```json
+{
+  "mcpServers": {
+    "stitch": {
+      "url": "https://stitch.googleapis.com/mcp",
+      "headers": {
+        "X-Goog-Api-Key": "YOUR-API-KEY"
+      }
+    }
+  }
+}
+```
 
-11. [What Is Google Stitch? The AI Design Tool That Has Figma Worried](https://agentdock.ai/academy/what-is-google-stitch-the-ai-design-tool-that-has-figma-worried) - Google Stitch turns text and voice into full UI designs with code export. Free, Gemini-powered, and ...
+#### Codex CLI
+```toml
+[[mcp_servers.stitch]]
+command = "npx"
+args = ["stitch-mcp-cli"]
+env = { STITCH_API_KEY = "YOUR-API-KEY" }
+```
 
-12. [MCP vs CLI: Benchmarking Tools for Coding Agents](https://mariozechner.at/posts/2025-08-15-mcp-vs-cli/) - A data-driven comparison of MCP and CLI approaches for coding agent terminal control.
+---
 
-13. [codex/docs/config.md at main · openai/codex · GitHub](https://github.com/openai/codex/blob/main/docs/config.md) - Lightweight coding agent that runs in your terminal - openai/codex
+## Testing
 
-14. [Stitch MCP installation in Antigravity](https://discuss.ai.google.dev/t/stitch-mcp-installation-in-antigravity/118194) - Has anyone managed to install this MCP? Can’t find it in MCP store so manual install necessary but I...
+```bash
+# Run tests
+npm test
 
-15. [MCP vs CLI | ¿Cómo deben conectarse los agentes de IA a ...](https://devgent.org/es/2026/03/17/mcp-vs-cli-ai-agent-comparison-es/) - MCP vs CLI para la integración de herramientas en agentes de IA — comparación exhaustiva. Los benchm...
+# Watch mode
+npm run test:watch
 
+# Coverage
+npm test -- --coverage
+```
+
+---
+
+## Herramientas MCP Disponibles
+
+El servidor Stitch MCP expone **14 herramientas** categorizadas:
+
+### Project Management
+| Tool | Read-Only |
+|------|-----------|
+| `create_project` | No |
+| `get_project` | Yes |
+| `delete_project` | No |
+| `list_projects` | Yes |
+
+### Screen Management
+| Tool | Read-Only |
+|------|-----------|
+| `list_screens` | Yes |
+| `get_screen` | Yes |
+
+### AI Generation
+| Tool | Read-Only |
+|------|-----------|
+| `generate_screen_from_text` | No |
+| `upload_screens_from_images` | No |
+| `edit_screens` | No |
+| `generate_variants` | No |
+
+### Design Systems
+| Tool | Read-Only |
+|------|-----------|
+| `create_design_system` | No |
+| `update_design_system` | No |
+| `list_design_systems` | Yes |
+| `apply_design_system` | No |
+
+### Notas Importantes
+
+- **`generate_screen_from_text`**: Tarda ~2-3 minutos. No reintentar en errores de conexión. Usar `get_screen` después para verificar.
+- **`generate_variants`**: Soporta 1-5 variantes con aspectos: `LAYOUT`, `COLOR_SCHEME`, `IMAGES`, `TEXT_FONT`, `TEXT_CONTENT`
+- **Modelos**: `GEMINI_3_PRO`, `GEMINI_3_FLASH`
+- **Device types**: `MOBILE`, `DESKTOP`, `TABLET`, `AGNOSTIC`
+- **Fonts**: 29 fonts (INTER, ROBOTO, DM_SANS, GEIST, SORA, MANROPE, etc.)
+
+---
+
+## Referencias
+
+- [SDK Oficial](https://github.com/google-labs-code/stitch-sdk)
+- [CLI David East](https://github.com/davideast/stitch-mcp)
+- [MCP Protocol](https://modelcontextprotocol.io)
+- [Codelab Antigravity](https://codelabs.developers.google.com/design-to-code-with-antigravity-stitch)
+- [Blog Stitch](https://blog.google/innovation-and-ai/models-and-research/google-labs/stitch-ai-ui-design/)
+- [Stitch MCP Setup](https://stitch.withgoogle.com/docs/mcp/setup)

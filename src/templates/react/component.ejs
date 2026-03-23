@@ -1,0 +1,14 @@
+import React from 'react';
+
+interface <%= componentName %>Props {
+  className?: string;
+}
+
+export function <%= componentName %>({ className = '' }: <%= componentName %>Props) {
+  return (
+    <div className={`${className} <%= componentName.toLowerCase() %>`}>
+      <style>{`<%= (css || '').replace(/`/g, '\\`').replace(/\$/g, '\\$') %>`}</style>
+      <%= html.replace(/class=/g, 'className=').replace(/for=/g, 'htmlFor=').replace(/onclick=/g, 'onClick=').replace(/onchange=/g, 'onChange=').replace(/ondoubleclick=/g, 'onDoubleClick=') %>
+    </div>
+  );
+}

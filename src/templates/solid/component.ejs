@@ -1,0 +1,13 @@
+import { Component, JSX } from 'solid-js';
+
+interface <%= componentName %>Props {
+  class?: string;
+}
+
+export const <%= componentName %>: Component<<%= componentName %>Props> = (props): JSX.Element => {
+  return (
+    <div class={`${props.class || ''} <%= componentName.toLowerCase() %>`}>
+      <%- html %>
+    </div>
+  );
+};

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation>
+  <name>Stitch MCP CLI Evaluation</name>
+  <description>Evaluación de herramientas MCP para Google Stitch. Las preguntas solo usan operaciones de solo lectura.</description>
+  
+  <qa_pair>
+    <question>Lista todos los proyectos de Stitch accesibles y muestra el ID de cada uno.</question>
+    <answer>projects_listed</answer>
+    <tool_used>list_projects</tool_used>
+  </qa_pair>
+
+  <qa_pair>
+    <question>Cuenta cuántos proyectos tiene el usuario actual en Stitch.</question>
+    <answer>count_n</answer>
+    <tool_used>list_projects</tool_used>
+  </qa_pair>
+
+  <qa_pair>
+    <question>Dado el proyecto con ID [PROJECT_ID], lista todas sus pantallas y cuenta cuántas hay.</question>
+    <answer>screens_count_n</answer>
+    <tool_used>list_screens</tool_used>
+  </qa_pair>
+
+  <qa_pair>
+    <question>Obtén el código HTML de la pantalla con ID [SCREEN_ID] del proyecto [PROJECT_ID]. El HTML debe comenzar con &lt;div o &lt;!DOCTYPE.</question>
+    <answer>html_retrieved</answer>
+    <tool_used>get_screen</tool_used>
+  </qa_pair>
+
+  <qa_pair>
+    <question>Verifica si la pantalla [SCREEN_ID] del proyecto [PROJECT_ID] tiene código CSS asociado.</question>
+    <answer>css_found_or_not_found</answer>
+    <tool_used>get_screen</tool_used>
+  </qa_pair>
+
+  <qa_pair>
+    <question>Lista todas las pantallas del proyecto [PROJECT_ID] y verifica si alguna tiene el tipo de dispositivo MOBILE.</question>
+    <answer>mobile_found_or_not_found</answer>
+    <tool_used>list_screens</tool_used>
+  </qa_pair>
+
+  <qa_pair>
+    <question>Obtén los metadatos del proyecto [PROJECT_ID] y determina cuántos campos tiene la respuesta.</question>
+    <answer>metadata_fields_min_n</answer>
+    <tool_used>get_project</tool_used>
+  </qa_pair>
+
+  <qa_pair>
+    <question>Lista todas las pantallas del proyecto [PROJECT_ID] y verifica si alguna contiene la palabra &quot;login&quot; o &quot;dashboard&quot; en su título.</question>
+    <answer>keyword_found_or_not_found</answer>
+    <tool_used>list_screens</tool_used>
+  </qa_pair>
+
+  <qa_pair>
+    <question>Cuenta cuántas pantallas tiene el proyecto [PROJECT_ID] y cuántas tienen screenshot disponible.</question>
+    <answer>screenshot_count_n</answer>
+    <tool_used>list_screens</tool_used>
+  </qa_pair>
+
+  <qa_pair>
+    <question>Verifica que puedes obtener al menos un proyecto y que su ID no está vacío.</question>
+    <answer>project_id_valid</answer>
+    <tool_used>list_projects</tool_used>
+  </qa_pair>
+
+</evaluation>

@@ -1,0 +1,15 @@
+<script setup lang="ts">
+interface Props {
+  className?: string;
+}
+
+let { className = '' }: Props = $props();
+</script>
+
+<style>
+<%- css %>
+</style>
+
+<div class="<%= componentName.toLowerCase() %> {className}">
+  <%- html %>
+</div>

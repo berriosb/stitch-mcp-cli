@@ -1,0 +1,17 @@
+import { Component, Input } from '@angular/core';
+
+@Component({
+  selector: 'app-<%= componentName.toLowerCase().replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase() %>',
+  template: `
+    <div class="<%= componentName.toLowerCase() %>">
+      <%- html %>
+    </div>
+  `,
+  styles: [`
+    <%- css %>
+  `],
+  standalone: true
+})
+export class <%= componentName %>Component {
+  @Input() className: string = '';
+}

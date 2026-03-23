@@ -1,77 +1,253 @@
-# stitch-mcp-cli 
+# stitch-mcp-cli
 
-**Universal Stitch MCP + CLI**
+**CLI + MCP Proxy para Google Stitch con scaffolding multi-framework**
 
-Híbrido MCP + CLI para conectar Google Stitch con tus agentes de código y tus pipelines:
+![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![Node](https://img.shields.io/badge/node-%3E%3D18-green)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-- `stitch-mcp-cli setup` → auto-configura MCP en **Cursor, Claude Code, OpenCode, Antigravity, VS Code, Codex CLI** (y otros IDEs compatibles).
-- `stitch-mcp-cli mcp` → lanza el servidor Stitch MCP local para cualquier cliente MCP.
-- `stitch-mcp-cli sync` → sincroniza diseños de Stitch a tu proyecto (HTML/CSS/tokens, listo para mapear a React/Next.js/Vue/etc.).
+## Características
 
-##  ¿Por qué un enfoque híbrido (MCP + CLI)?
+- ⚡ **Setup en 30 segundos** - Solo necesitas una API key
+- 🎨 **Scaffolding universal** - Exporta a React, Vue, Svelte, Next.js, y más
+- 👀 **Watch mode** - Sincronización continua cuando cambia el diseño
+- 💾 **Offline cache** - Trabaja sin conexión con proyectos cacheados
+- 🔧 **Multi-IDE** - Configura automáticamente Cursor, Claude Code, VS Code, OpenCode, Antigravity, Codex CLI
+- 🧪 **Evaluaciones MCP** - Benchmark tools para LLMs
 
-- **Un solo paquete para todo**: el mismo proyecto te da un **servidor MCP estándar** para editores y un **CLI** para scripts, CI/CD y terminal. No tienes que instalar cosas distintas para IDE y pipeline.
-- **Multi-editor real**: el comando `setup` detecta editores/CLIs MCP (Cursor, Claude Code, OpenCode, Antigravity, VS Code, Codex, etc.) y escribe sus configs nativas para apuntar a `stitch-mcp-cli`.
-- **Multi-framework por diseño**: el servidor MCP devuelve datos neutrales (HTML/CSS/tokens) desde Stitch, y el CLI se encarga del scaffolding. Puedes mapear esos resultados a React/Next.js, Vue, Svelte, Flutter o lo que uses en tu stack.
-- **Menos fricción, más adopción**: configurar MCP a mano en cada IDE es tedioso. Con `stitch-mcp-cli setup` lo haces una vez y ya puedes escribir «usa stitch» en tu agente, sin tocar archivos de config.
-
-##  Quickstart
+## Quickstart
 
 ```bash
+# 1. Instalar
 npm install -g stitch-mcp-cli
 
-# 1) Configurar MCP en todos los IDEs/CLIs detectados
+# 2. Configurar API key
+stitch-mcp-cli auth --api-key TU_API_KEY
+
+# 3. Configurar IDEs
 stitch-mcp-cli setup
 
-# 2) Lanzar el servidor Stitch MCP local
-stitch-mcp-cli mcp
-
-# 3) Sincronizar un diseño de Stitch al proyecto actual
-stitch-mcp-cli sync "Landing Page" --output src/stitch
+# 4. Listar proyectos
+stitch-mcp-cli projects
 ```
 
-Luego, en tu editor (Cursor, Claude Code, OpenCode, Antigravity, etc.), pídele al agente:
+Obtén tu API key en: https://stitch.withgoogle.com/settings
 
-> Usa el MCP `stitch` para generar o actualizar el diseño de la landing.
+## Comandos
 
-##  Comandos
+| Comando | Descripción |
+|---------|-------------|
+| `auth` | Configurar API key |
+| `setup` | Auto-configurar IDEs |
+| `projects` | Listar proyectos |
+| `generate` | Generar pantalla |
+| `sync` | Sync a archivos |
+| `export` | Exportar a framework |
+| `watch` | Watch mode |
+| `cache` | Gestionar caché |
 
-### `setup`
-
-Detecta IDEs/CLIs compatibles y escribe las configuraciones MCP necesarias para apuntar a `stitch-mcp-cli`.
+### Auth
 
 ```bash
+# Configurar API key
+stitch-mcp-cli auth --api-key <key>
+
+# Verificar configuración
+stitch-mcp-cli auth --check
+```
+
+### Setup
+
+```bash
+# Auto-detectar y configurar IDEs
 stitch-mcp-cli setup
-# Ejemplo de salida:
-#  cursor: ~/.cursor/mcp.json
-#  claude: ~/.claude/claude_desktop_config.json
-#  opencode: ~/.config/opencode/opencode.json
-# ...
+
+# Configurar solo IDE específico
+stitch-mcp-cli setup --editor cursor
+
+# Modo verbose
+stitch-mcp-cli setup --verbose
 ```
 
-### `mcp`
-
-Lanza el servidor Stitch MCP como proceso local.
+### Projects
 
 ```bash
-stitch-mcp-cli mcp
-# Escuchando en http://localhost:3001
+# Listar todos los proyectos
+stitch-mcp-cli projects
+
+# Listar con formato JSON
+stitch-mcp-cli projects --json
+
+# Filtrar por nombre
+stitch-mcp-cli projects --search "dashboard"
 ```
 
-### `sync <designName>`
-
-Sincroniza un diseño de Stitch con el proyecto actual. Por defecto guarda HTML/CSS/tokens en `src/`, pero se puede personalizar.
+### Generate
 
 ```bash
-stitch-mcp-cli sync "Dashboard de Analytics" --output src/stitch
+# Generar pantalla desde prompt
+stitch-mcp-cli generate "Login form with email and password" --project-id <id>
+
+# Generar con tipo de dispositivo
+stitch-mcp-cli generate "Mobile navigation" --project-id <id> --device mobile
 ```
 
-##  Roadmap
+### Sync
 
-- [ ] Soporte avanzado de scaffolding por framework (React/Next.js, Vue/Nuxt, SvelteKit, Flutter).
-- [ ] Integraciones de despliegue (Vercel, Cloudflare, etc.).
-- [ ] Modo «watch» para actualizar el código cuando cambie el diseño en Stitch.
+```bash
+# Sync pantalla específica
+stitch-mcp-cli sync <project-id> <screen-id> --output ./src/stitch
 
-## 📝 Licencia
+# Sync todos los diseños de un proyecto
+stitch-mcp-cli sync --project-id <id> --output ./designs
+```
+
+### Export
+
+```bash
+# Exportar a React
+stitch-mcp-cli export <project-id> --framework react --output ./src/components
+
+# Exportar a Vue
+stitch-mcp-cli export <project-id> --framework vue --output ./src/views
+
+# Exportar a Next.js
+stitch-mcp-cli export <project-id> --framework nextjs --output ./app
+```
+
+### Watch
+
+```bash
+# Modo watch con sync automático
+stitch-mcp-cli watch <project-id> --output ./src/stitch --framework react
+```
+
+### Cache
+
+```bash
+# Ver estado de caché
+stitch-mcp-cli cache --status
+
+# Limpiar caché
+stitch-mcp-cli cache --clear
+
+# Sync proyecto a caché
+stitch-mcp-cli cache --sync <project-id>
+```
+
+## Configuración de IDEs
+
+### Cursor
+
+```json
+{
+  "mcpServers": {
+    "stitch": {
+      "command": "npx",
+      "args": ["stitch-mcp-cli"],
+      "env": {
+        "STITCH_API_KEY": "${STITCH_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### Claude Code
+
+```bash
+claude mcp add stitch -- npx stitch-mcp-cli
+```
+
+### VS Code
+
+```json
+{
+  "mcpServers": {
+    "stitch": {
+      "command": "npx",
+      "args": ["stitch-mcp-cli"],
+      "env": {
+        "STITCH_API_KEY": "${STITCH_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### OpenCode
+
+```json
+{
+  "mcpServers": {
+    "stitch": {
+      "command": "npx",
+      "args": ["stitch-mcp-cli"],
+      "env": {
+        "STITCH_API_KEY": "${STITCH_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### Codex CLI
+
+```toml
+[[mcp_servers.stitch]]
+command = "npx"
+args = ["stitch-mcp-cli"]
+env = { STITCH_API_KEY = "YOUR-API-KEY" }
+```
+
+## Desarrollo
+
+```bash
+# Clonar repositorio
+git clone https://github.com/berriosb/stitch-mcp-cli.git
+cd stitch-mcp-cli
+
+# Instalar dependencias
+npm install
+
+# Desarrollo (watch mode)
+npm run dev
+
+# Build
+npm run build
+
+# Tests
+npm test
+
+# Typecheck
+npm run typecheck
+```
+
+## Seguridad
+
+- La API key se guarda en `~/.stitch-mcp-cli/config.json` (nunca en git)
+- El SDK usa header `X-Goog-Api-Key`, no query params
+- Añade restricciones a tu API key en Google Cloud Console
+
+## Roadmap
+
+### v0.1.0 - MVP ✅
+- [x] MCP Proxy
+- [x] CLI con Commander
+- [x] Auth con API key
+- [x] Setup multi-editor
+- [x] Comandos básicos
+- [x] Tests unitarios
+
+### v0.2.0 - Scaffolding
+- [ ] Export a más frameworks
+- [ ] Template engine mejorado
+
+### v0.3.0 - Workflow
+- [ ] Watch mode avanzado
+- [ ] Cache system
+- [ ] Offline mode
+
+## Licencia
 
 MIT
