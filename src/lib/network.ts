@@ -6,12 +6,12 @@ export async function isOnline(): Promise<boolean> {
     const timeout = setTimeout(() => controller.abort(), 5000);
     
     const response = await fetch(`${STITCH_HOST}/mcp`, {
-      method: "HEAD",
+      method: "GET",
       signal: controller.signal,
     });
     
     clearTimeout(timeout);
-    return response.ok;
+    return response.ok || response.status === 405;
   } catch {
     return false;
   }

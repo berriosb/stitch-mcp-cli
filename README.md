@@ -376,13 +376,13 @@ Archivo: `~/.config/opencode/opencode.json`
 }
 ```
 
-### Kilo
+### Kilo Code
 
-Archivo: `~/.config/kilo/kilo.json`
+Archivo: `~/.config/kilo/opencode.json`
 
 ```json
 {
-  "$schema": "https://opencode.ai/config.json",
+  "$schema": "https://app.kilo.ai/config.json",
   "mcp": {
     "stitch": {
       "type": "local",
@@ -401,10 +401,16 @@ Archivo: `~/.config/kilo/kilo.json`
 Archivo: `~/.codex/config.toml`
 
 ```toml
-[mcp.stitch]
+[mcp_servers.stitch]
 command = "npx"
 args = ["stitch-mcp-cli"]
-env = { STITCH_API_KEY = "${STITCH_API_KEY}" }
+env_vars = { STITCH_API_KEY = "${STITCH_API_KEY}" }
+```
+
+O usando el CLI de Codex:
+
+```bash
+codex mcp add stitch --env STITCH_API_KEY=$STITCH_API_KEY -- npx stitch-mcp-cli
 ```
 
 ### Antigravity

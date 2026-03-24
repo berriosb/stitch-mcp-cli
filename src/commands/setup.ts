@@ -16,7 +16,7 @@ const EDITORS: Editor[] = [
   { name: "Claude Code", cmd: "claude", configPath: ".claude/claude_desktop_config.json", format: "json" },
   { name: "VS Code", cmd: "code", configPath: ".config/Code/User/global.json", format: "json" },
   { name: "OpenCode", cmd: "opencode", configPath: ".config/opencode/opencode.json", format: "opencode" },
-  { name: "Kilo Code", cmd: "kilo", configPath: ".config/opencode/opencode.json", format: "opencode" },
+  { name: "Kilo Code", cmd: "kilo", configPath: ".config/kilo/opencode.json", format: "opencode" },
   { name: "Antigravity", cmd: "antigravity", configPath: ".antigravity/mcp_config.json", format: "json" },
   { name: "Codex CLI", cmd: "codex", configPath: ".codex/config.toml", format: "toml" },
 ];
@@ -184,20 +184,24 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
 
       fs.writeFileSync(editorConfigPath, JSON.stringify(existingConfig, null, 2));
     } else {
-      const dollar = "$";
-      const tomlContent = [
+      // Codex CLI uses TOML format
+      // Format: [mcp_servers.<name>] with command, args, env_vars
+      const tomlSection = [
         "",
-        "[[mcp_servers.stitch]]",
+        "[mcp_servers.stitch]",
         'command = "npx"',
         'args = ["stitch-mcp-cli"]',
-        "env = { STITCH_API_KEY = " + dollar + "STITCH_API_KEY }",
+        "env_vars = { STITCH_API_KEY = \"${STITCH_API_KEY}\" }",
         "",
       ].join("\n");
+      
       if (fs.existsSync(editorConfigPath)) {
         const existing = fs.readFileSync(editorConfigPath, "utf-8");
-        fs.writeFileSync(editorConfigPath, existing + tomlContent);
+        // Remove old stitch config if exists
+        const cleaned = existing.replace(/\n?\[\[?mcp_servers\.stitch\]\]?[\s\S]*?(?=\n\[|$)/g, "");
+        fs.writeFileSync(editorConfigPath, cleaned + tomlSection);
       } else {
-        fs.writeFileSync(editorConfigPath, tomlContent);
+        fs.writeFileSync(editorConfigPath, tomlSection);
       }
     }
 
