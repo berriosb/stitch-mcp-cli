@@ -1,22 +1,27 @@
 import { StitchToolClient } from "@google/stitch-sdk";
-import { loadConfig, saveConfig } from "../lib/config.js";
+import { saveSecureConfig, loadSecureConfig } from "../lib/secure-config.js";
 
+/**
+ * Configure or verify the Stitch API key (securely encrypted)
+ * @param options.apiKey - API key to save
+ * @param options.check - Verify existing API key
+ */
 export async function auth(options: { apiKey?: string; check?: boolean }) {
   if (options.check) {
-    const config = loadConfig();
-    if (!config.apiKey) {
-      console.log("❌ API key no configurada");
+    const { apiKey } = loadSecureConfig();
+    if (!apiKey) {
+      console.log("X API key no configurada");
       console.log("   Ejecuta: stitch-mcp-cli auth --api-key <tu-key>");
       process.exit(1);
     }
 
     try {
-      const client = new StitchToolClient({ apiKey: config.apiKey });
+      const client = new StitchToolClient({ apiKey });
       await client.listTools();
-      console.log("✅ API key configurada y válida");
+      console.log("OK API key configurada y valida");
       await client.close();
     } catch {
-      console.log("❌ API key inválida o expirada");
+      console.log("X API key invalida o expirada");
       process.exit(1);
     }
     return;
@@ -27,6 +32,6 @@ export async function auth(options: { apiKey?: string; check?: boolean }) {
     process.exit(1);
   }
 
-  saveConfig({ apiKey: options.apiKey });
-  console.log("✅ API key guardada en ~/.stitch-mcp-cli/config.json");
+  saveSecureConfig(options.apiKey);
+  console.log("OK API key encriptada y guardada en ~/.stitch-mcp-cli/config.json");
 }

@@ -1,19 +1,24 @@
 # stitch-mcp-cli
 
-**CLI + MCP Proxy para Google Stitch con scaffolding multi-framework**
+**CLI + MCP Server para Google Stitch con scaffolding multi-framework**
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Características
 
 - ⚡ **Setup en 30 segundos** - Solo necesitas una API key
+- 🔐 **Seguridad** - API key encriptada con AES-256-GCM
 - 🎨 **Scaffolding universal** - Exporta a React, Vue, Svelte, Next.js, y más
 - 👀 **Watch mode** - Sincronización continua cuando cambia el diseño
 - 💾 **Offline cache** - Trabaja sin conexión con proyectos cacheados
 - 🔧 **Multi-IDE** - Configura automáticamente Cursor, Claude Code, VS Code, OpenCode, Antigravity, Codex CLI
 - 🧪 **Evaluaciones MCP** - Benchmark tools para LLMs
+- 📡 **HTTP + stdio** - Dos transportes MCP disponibles
+- 🚦 **Rate limiting** - 60 req/min para evitar bloqueos
+- 📝 **Logging estructurado** - Pino logger con niveles configurables
+- ✅ **TypeScript strict** - Tipado completo y verificado
 
 ## Quickstart
 
@@ -21,7 +26,7 @@
 # 1. Instalar
 npm install -g stitch-mcp-cli
 
-# 2. Configurar API key
+# 2. Configurar API key (encriptada automáticamente)
 stitch-mcp-cli auth --api-key TU_API_KEY
 
 # 3. Configurar IDEs
@@ -33,11 +38,35 @@ stitch-mcp-cli projects
 
 Obtén tu API key en: https://stitch.withgoogle.com/settings
 
+## MCP Server
+
+El CLI también funciona como **MCP Server** para integrar con AI coding agents:
+
+```bash
+#Modo stdio (local) - Para IDEs
+stitch-mcp-cli mcp
+
+# Modo HTTP (remoto) - Puerto 3100
+stitch-mcp-cli mcp:http
+```
+
+### Tools disponibles en MCP:
+
+| Tool | Descripción |
+|------|-------------|
+| `stitch_list_projects` | Lista proyectos (con búsqueda) |
+| `stitch_generate_screen` | Genera pantalla desde prompt |
+| `stitch_sync_screen` | Sync a HTML |
+| `stitch_export_framework` | Exporta a framework |
+| `stitch_cache_status` | Estado de caché |
+| `stitch_cache_clear` | Limpia caché |
+| `stitch_cache_sync` | Sincroniza proyecto a caché |
+
 ## Comandos
 
 | Comando | Descripción |
 |---------|-------------|
-| `auth` | Configurar API key |
+| `auth` | Configurar API key (encriptada) |
 | `setup` | Auto-configurar IDEs |
 | `projects` | Listar proyectos |
 | `generate` | Generar pantalla |
@@ -45,28 +74,17 @@ Obtén tu API key en: https://stitch.withgoogle.com/settings
 | `export` | Exportar a framework |
 | `watch` | Watch mode |
 | `cache` | Gestionar caché |
+| `eval` | Ejecutar evaluaciones MCP |
+| `design-md` | Extraer design system |
 
 ### Auth
 
 ```bash
-# Configurar API key
+# Configurar API key (se encripta automáticamente)
 stitch-mcp-cli auth --api-key <key>
 
 # Verificar configuración
 stitch-mcp-cli auth --check
-```
-
-### Setup
-
-```bash
-# Auto-detectar y configurar IDEs
-stitch-mcp-cli setup
-
-# Configurar solo IDE específico
-stitch-mcp-cli setup --editor cursor
-
-# Modo verbose
-stitch-mcp-cli setup --verbose
 ```
 
 ### Projects
@@ -80,6 +98,9 @@ stitch-mcp-cli projects --json
 
 # Filtrar por nombre
 stitch-mcp-cli projects --search "dashboard"
+
+# Modo offline
+stitch-mcp-cli projects --offline
 ```
 
 ### Generate
@@ -113,13 +134,6 @@ stitch-mcp-cli export <project-id> --framework vue --output ./src/views
 
 # Exportar a Next.js
 stitch-mcp-cli export <project-id> --framework nextjs --output ./app
-```
-
-### Watch
-
-```bash
-# Modo watch con sync automático
-stitch-mcp-cli watch <project-id> --output ./src/stitch --framework react
 ```
 
 ### Cache
@@ -175,31 +189,6 @@ claude mcp add stitch -- npx stitch-mcp-cli
 }
 ```
 
-### OpenCode
-
-```json
-{
-  "mcpServers": {
-    "stitch": {
-      "command": "npx",
-      "args": ["stitch-mcp-cli"],
-      "env": {
-        "STITCH_API_KEY": "${STITCH_API_KEY}"
-      }
-    }
-  }
-}
-```
-
-### Codex CLI
-
-```toml
-[[mcp_servers.stitch]]
-command = "npx"
-args = ["stitch-mcp-cli"]
-env = { STITCH_API_KEY = "YOUR-API-KEY" }
-```
-
 ## Desarrollo
 
 ```bash
@@ -208,45 +197,87 @@ git clone https://github.com/berriosb/stitch-mcp-cli.git
 cd stitch-mcp-cli
 
 # Instalar dependencias
-npm install
+pnpm install
 
 # Desarrollo (watch mode)
-npm run dev
+pnpm dev
 
 # Build
-npm run build
+pnpm run build
 
 # Tests
-npm test
+pnpm test
 
 # Typecheck
-npm run typecheck
+pnpm run typecheck
+
+# Inspect MCP server
+pnpm run inspector
 ```
 
 ## Seguridad
 
-- La API key se guarda en `~/.stitch-mcp-cli/config.json` (nunca en git)
+- La API key se encripta con **AES-256-GCM** y se guarda en `~/.stitch-mcp-cli/config.json`
+- La clave de encriptación se guarda en `~/.stitch-mcp-cli/.key` con permisos `0600`
 - El SDK usa header `X-Goog-Api-Key`, no query params
 - Añade restricciones a tu API key en Google Cloud Console
+- Rate limiting: 60 requests por minuto
+
+## Logging
+
+El servidor usa **Pino** para logging estructurado:
+
+```bash
+# Nivel de log (default: info)
+LOG_LEVEL=debug stitch-mcp-cli mcp
+
+# Ver logs en desarrollo
+NODE_ENV=development stitch-mcp-cli mcp
+```
+
+## Environment Variables
+
+| Variable | Default | Descripción |
+|----------|---------|-------------|
+| `STITCH_API_KEY` | - | API key de Stitch |
+| `LOG_LEVEL` | `info` | Nivel de log |
+| `NODE_ENV` | `production` | Entorno (development/production) |
+| `MCP_PORT` | `3100` | Puerto HTTP (solo mcp:http) |
+| `MCP_HOST` | `localhost` | Host HTTP (solo mcp:http) |
+
+## Changelog
+
+Ver [CHANGELOG.md](./CHANGELOG.md) para historial de cambios.
+
+Para generar changelog con conventional commits:
+```bash
+pnpm run changelog
+```
 
 ## Roadmap
 
-### v0.1.0 - MVP ✅
-- [x] MCP Proxy
-- [x] CLI con Commander
-- [x] Auth con API key
-- [x] Setup multi-editor
-- [x] Comandos básicos
-- [x] Tests unitarios
+### v1.0.0 - Production Ready ✅
+- [x] MCP Server propio con 7 tools
+- [x] CLI completa con 10 comandos
+- [x] API key encriptada (AES-256-GCM)
+- [x] Rate limiting (60 req/min)
+- [x] Logging estructurado (Pino)
+- [x] Graceful shutdown
+- [x] HTTP + stdio transports
+- [x] TypeScript strict mode
+- [x] Zod validation
+- [x] 58 tests (unit + integration)
+- [x] CI/CD con GitHub Actions
 
-### v0.2.0 - Scaffolding
-- [ ] Export a más frameworks
+### v1.1.0 - Enhanced Features
 - [ ] Template engine mejorado
-
-### v0.3.0 - Workflow
+- [ ] Más frameworks (Angular, Solid)
 - [ ] Watch mode avanzado
-- [ ] Cache system
-- [ ] Offline mode
+
+### v1.2.0 - Cloud
+- [ ] MCP sobre HTTP con autenticación
+- [ ] Deploy a cloud functions
+- [ ] Multi-user support
 
 ## Licencia
 

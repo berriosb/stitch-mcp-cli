@@ -127,12 +127,12 @@ async function runEval(qaPairs: QAPair[]): Promise<EvalStats> {
 }
 
 function printResults(stats: EvalStats): void {
-  console.log("\n📊 Resultados de Evaluacion\n");
-  console.log(`Total: ${stats.total} | ✅ Passed: ${stats.passed} | ❌ Failed: ${stats.failed}\n`);
+  console.log("\n[S] Resultados de Evaluacion\n");
+  console.log(`Total: ${stats.total} | OK Passed: ${stats.passed} | X Failed: ${stats.failed}\n`);
 
   for (let i = 0; i < stats.results.length; i++) {
     const r = stats.results[i];
-    const status = r.passed ? "✅" : "❌";
+    const status = r.passed ? "OK" : "X";
     console.log(`${status} [${i + 1}] ${r.question}`);
     console.log(`   Tool: ${r.toolUsed || "N/A"}`);
     console.log(`   Answer: ${r.actualAnswer}\n`);

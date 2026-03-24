@@ -4,10 +4,16 @@ import type { CachedProject, CachedScreen } from "../types/index.js";
 
 const cm = new SqliteCacheManager();
 
+/**
+ * Manage local SQLite cache for offline access
+ * @param options.status - Show cache status
+ * @param options.clear - Clear all cached data
+ * @param options.sync - Sync project to cache by ID
+ */
 export async function cache(options: { status?: boolean; clear?: boolean; sync?: string }) {
   if (options.clear) {
     await cm.clearCache();
-    console.log("✅ Caché eliminada");
+    console.log("OK Cache eliminada");
     return;
   }
 
@@ -15,7 +21,7 @@ export async function cache(options: { status?: boolean; clear?: boolean; sync?:
     const size = cm.getCacheSize();
     const projects = await cm.listProjects();
 
-    console.log("📦 Estado de caché:\n");
+    console.log("[C] Estado de cache:\n");
     console.log(`   Proyectos cacheados: ${size.projectCount}`);
     console.log(`   Pantallas cacheadas: ${size.screenCount}`);
     console.log(`   Tamaño: ${(size.sizeBytes / 1024).toFixed(2)} KB`);
@@ -59,7 +65,7 @@ export async function cache(options: { status?: boolean; clear?: boolean; sync?:
 
       await cm.saveProject(cachedProject);
 
-      console.log(`✅ ${screens.length} pantallas cacheadas`);
+      console.log(`OK ${screens.length} pantallas cacheadas`);
     } catch (error) {
       console.error("Error al sincronizar:", error instanceof Error ? error.message : error);
       process.exit(1);

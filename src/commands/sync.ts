@@ -2,6 +2,12 @@ import fs from "fs";
 import path from "path";
 import { getStitchClient } from "../lib/stitch-client.js";
 
+/**
+ * Sync screens from Stitch project to local HTML files
+ * @param projectId - Stitch project ID
+ * @param screenId - Optional specific screen ID (syncs all if not provided)
+ * @param options.output - Output directory (default: ./stitch-output)
+ */
 export async function sync(
   projectId: string,
   screenId?: string,
@@ -30,7 +36,7 @@ export async function sync(
       const filePath = path.join(outputDir, `screen-${screenId}.html`);
       fs.writeFileSync(filePath, html);
 
-      console.log(`✅ Pantalla guardada: ${filePath}`);
+      console.log(`OK Pantalla guardada: ${filePath}`);
     } else {
       const screens = await project.screens();
       console.log(`Sincronizando ${screens.length} pantallas...`);
@@ -41,7 +47,7 @@ export async function sync(
         fs.writeFileSync(filePath, html);
       }
 
-      console.log(`✅ ${screens.length} pantallas guardadas en ${outputDir}`);
+      console.log(`OK ${screens.length} pantallas guardadas en ${outputDir}`);
     }
   } catch (error) {
     console.error("Error al sincronizar:", error instanceof Error ? error.message : error);

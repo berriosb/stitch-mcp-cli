@@ -55,6 +55,11 @@ STITCH_API_KEY = "\${STITCH_API_KEY}"
   }, null, 2);
 }
 
+/**
+ * Auto-configure MCP server in supported IDEs (Cursor, Claude Code, VS Code, etc.)
+ * @param options.editor - Filter to specific editor name
+ * @param options.verbose - Show detailed output
+ */
 export async function setup(options: { editor?: string; verbose?: boolean }) {
   const configPath = getConfigPath();
   let apiKeyEnv = "\${STITCH_API_KEY}";
@@ -63,7 +68,7 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
     try {
       const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
       if (config.apiKey) {
-        console.log("ℹ️  Usando API key de ~/.stitch-mcp-cli/config.json");
+        console.log("i Usando API key de ~/.stitch-mcp-cli/config.json");
         apiKeyEnv = "\${STITCH_API_KEY}";
       }
     } catch {
@@ -152,9 +157,9 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
 
     configured++;
     if (options.verbose) {
-      console.log(`✅ ${editor.name}: ${editorConfigPath}`);
+      console.log(`OK ${editor.name}: ${editorConfigPath}`);
     } else {
-      console.log(`✅ ${editor.name}`);
+      console.log(`OK ${editor.name}`);
     }
   }
 

@@ -168,8 +168,8 @@ export async function designMd(options: { projectId?: string; output?: string; s
     const designMd = generateDesignMd(metadata);
     fs.writeFileSync(outputPath, designMd);
 
-    console.log(`✅ Design system saved to ${outputPath}`);
-    console.log(`✅ Metadata saved to .stitch/metadata.json`);
+    console.log(`OK Design system saved to ${outputPath}`);
+    console.log(`OK Metadata saved to .stitch/metadata.json`);
 
     if (options.sync) {
       console.log("\nSyncing all screens to .stitch/designs/...");
@@ -183,12 +183,12 @@ export async function designMd(options: { projectId?: string; output?: string; s
           const html = await screen.getHtml();
           const screenFile = path.join(designsDir, `${screen.screenId.slice(0, 8)}.html`);
           fs.writeFileSync(screenFile, html);
-          console.log(`  ✅ ${screen.screenId.slice(0, 8)}`);
+          console.log(`  OK ${screen.screenId.slice(0, 8)}`);
         } catch (error) {
-          console.error(`  ❌ ${screen.screenId}: ${error instanceof Error ? error.message : error}`);
+          console.error(`  X ${screen.screenId}: ${error instanceof Error ? error.message : error}`);
         }
       }
-      console.log(`\n✅ ${screens.length} screens synced to ${designsDir}`);
+      console.log(`\nOK ${screens.length} screens synced to ${designsDir}`);
     }
   } catch (error) {
     console.error("Error generating design system:", error instanceof Error ? error.message : error);

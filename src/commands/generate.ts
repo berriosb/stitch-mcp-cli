@@ -6,6 +6,7 @@ import {
   updateScreen, 
   type ScreenMetadata 
 } from "../lib/metadata.js";
+import { GenerateOptionsSchema, validateOrThrow } from "../lib/schemas.js";
 
 type DeviceType = "mobile" | "desktop" | "tablet";
 
@@ -19,10 +20,12 @@ export async function generate(
     process.exit(1);
   }
 
+  const validated = validateOrThrow(GenerateOptionsSchema, options);
+
   try {
     const { stitch } = getStitchClient();
     let project;
-    let projectId = options.projectId;
+    let projectId = validated.projectId;
 
     if (projectId) {
       project = stitch.project(projectId);
@@ -57,10 +60,10 @@ export async function generate(
     }
 
     console.log("Generando pantalla...");
-    const deviceType = options.device?.toUpperCase() as "MOBILE" | "DESKTOP" | "TABLET" | "AGNOSTIC" | "DEVICE_TYPE_UNSPECIFIED" | undefined;
+    const deviceType = validated.device?.toUpperCase() as "MOBILE" | "DESKTOP" | "TABLET" | "AGNOSTIC" | "DEVICE_TYPE_UNSPECIFIED" | undefined;
     const screen = await project.generate(prompt, deviceType);
 
-    const screenName = options.name || `screen_${Date.now()}`;
+    const screenName = validated.name || `screen_${Date.now()}`;
     const screenMetadata: ScreenMetadata = {
       id: screen.screenId,
       sourceScreen: `projects/${projectId}/screens/${screen.screenId}`,
@@ -72,7 +75,7 @@ export async function generate(
 
     updateScreen(screenName, screenMetadata);
 
-    console.log(`\n✅ Pantalla generada`);
+    console.log(`\nOK Pantalla generada`);
     console.log(`   Project ID: ${screen.projectId}`);
     console.log(`   Screen ID: ${screen.screenId}`);
     console.log(`   Screen Name: ${screenName}`);

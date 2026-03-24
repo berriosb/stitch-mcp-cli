@@ -33,8 +33,6 @@ Desktop.ini
 
 # Skills (managed externally)
 .agents/
-
-# Skills lock (managed externally)
 skills-lock.json
 
 # Test coverage
@@ -77,6 +75,8 @@ stitch-mcp-cli.config.json
 .npm/
 .node-version
 
-# Documentation (Spanish)
-Guía para construir un híbrido Stitch MCP + CLI*.md
-planificacion proyecto.md
+# Version config
+.versionrc
+
+# Evaluations
+evaluations/

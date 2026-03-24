@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import fs from "fs";
 import path from "path";
 import os from "os";
 import type { CachedProject, CachedScreen } from "../types/index.js";
@@ -10,8 +11,8 @@ export class SqliteCacheManager {
     const cacheDir = path.join(os.homedir(), ".stitch-mcp-cli");
     const dbFile = dbPath || path.join(cacheDir, "cache.db");
     
-    if (!require("fs").existsSync(cacheDir)) {
-      require("fs").mkdirSync(cacheDir, { recursive: true });
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true });
     }
 
     this.db = new Database(dbFile);
@@ -148,7 +149,7 @@ export class SqliteCacheManager {
     
     let sizeBytes = 0;
     try {
-      const stats = require("fs").statSync(this.db.name);
+      const stats = fs.statSync(this.db.name);
       sizeBytes = stats.size;
     } catch {}
 

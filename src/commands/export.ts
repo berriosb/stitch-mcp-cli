@@ -68,7 +68,7 @@ export async function exportCmd(
         fs.writeFileSync(filePath, code);
       }
 
-      console.log(`✅ Exportado ${routes.length} rutas a ${outputDir}`);
+      console.log(`OK Exportado ${routes.length} rutas a ${outputDir}`);
       console.log(`   Framework: ${framework}`);
     } else {
       for (const screen of screens) {
@@ -96,7 +96,7 @@ export async function exportCmd(
         fs.writeFileSync(filePath, code);
       }
 
-      console.log(`✅ Exportado ${screens.length} archivos a ${outputDir}`);
+      console.log(`OK Exportado ${screens.length} archivos a ${outputDir}`);
       console.log(`   Framework: ${framework}`);
     }
   } catch (error) {

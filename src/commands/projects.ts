@@ -1,15 +1,17 @@
 import { getStitchClient } from "../lib/stitch-client.js";
 import { SqliteCacheManager } from "../lib/sqlite-cache-manager.js";
 import { isOnline } from "../lib/network.js";
+import { ProjectsOptionsSchema, validateOrThrow } from "../lib/schemas.js";
 
 export async function projects(options: { json?: boolean; search?: string; offline?: boolean }) {
+  const validated = validateOrThrow(ProjectsOptionsSchema, options);
   const online = await isOnline();
 
-  if (!online && options.offline) {
+  if (!online && validated.offline) {
     const cm = new SqliteCacheManager();
     const cached = await cm.listProjects();
     
-    if (options.json) {
+    if (validated.json) {
       console.log(JSON.stringify(cached, null, 2));
       return;
     }
@@ -20,7 +22,7 @@ export async function projects(options: { json?: boolean; search?: string; offli
       return;
     }
 
-    console.log(`📦 Modo offline - Proyectos en caché (${cached.length}):\n`);
+    console.log(`[C] Modo offline - Proyectos en cache (${cached.length}):\n`);
     for (const project of cached) {
       console.log(`  ${project.name}`);
       console.log(`  ID: ${project.id}`);
@@ -30,7 +32,7 @@ export async function projects(options: { json?: boolean; search?: string; offli
   }
 
   if (!online) {
-    console.log("⚠️  Sin conexion a internet.");
+    console.log("! Sin conexion a internet.");
     console.log("   Usa --offline para ver proyectos en caché.");
     console.log("   O conecta a internet y ejecuta 'stitch-mcp-cli cache --sync <project-id>'");
     process.exit(1);
@@ -41,14 +43,14 @@ export async function projects(options: { json?: boolean; search?: string; offli
     const allProjects = await stitch.projects();
 
     let filtered = allProjects;
-    if (options.search) {
-      const search = options.search.toLowerCase();
+    if (validated.search) {
+      const search = validated.search.toLowerCase();
       filtered = allProjects.filter((p) =>
         p.id.toLowerCase().includes(search)
       );
     }
 
-    if (options.json) {
+    if (validated.json) {
       console.log(JSON.stringify(filtered, null, 2));
       return;
     }

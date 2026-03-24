@@ -13,8 +13,8 @@ vi.mock("@google/stitch-sdk", () => ({
   })),
 }));
 
-vi.mock("../../src/lib/config.js", () => ({
-  loadConfig: vi.fn().mockReturnValue({ apiKey: "test-api-key" }),
+vi.mock("../../src/lib/secure-config.js", () => ({
+  loadSecureConfig: vi.fn().mockReturnValue({ apiKey: "test-api-key" }),
 }));
 
 describe("stitch-client", () => {
@@ -34,8 +34,8 @@ describe("stitch-client", () => {
     it("should throw error when no api key configured", async () => {
       vi.resetModules();
       
-      vi.doMock("../../src/lib/config.js", () => ({
-        loadConfig: vi.fn().mockReturnValue({}),
+      vi.doMock("../../src/lib/secure-config.js", () => ({
+        loadSecureConfig: vi.fn().mockReturnValue({}),
       }));
       
       const { getStitchClient: freshGetClient } = await import("../../src/lib/stitch-client.js");

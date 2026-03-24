@@ -1,5 +1,5 @@
 import { stitch as stitchSingleton, StitchToolClient } from "@google/stitch-sdk";
-import { loadConfig } from "./config.js";
+import { loadSecureConfig } from "./secure-config.js";
 
 export interface StitchClient {
   stitch: typeof stitchSingleton;
@@ -8,13 +8,18 @@ export interface StitchClient {
 
 let cachedClient: StitchClient | null = null;
 
+/**
+ * Get or create a cached Stitch client instance
+ * @returns StitchClient with stitch SDK and client
+ * @throws Error if API key is not configured
+ */
 export function getStitchClient(): StitchClient {
   if (cachedClient) {
     return cachedClient;
   }
 
-  const config = loadConfig();
-  const apiKey = config.apiKey || process.env.STITCH_API_KEY;
+  const { apiKey: configApiKey } = loadSecureConfig();
+  const apiKey = configApiKey || process.env.STITCH_API_KEY;
 
   if (!apiKey) {
     throw new Error(
@@ -32,6 +37,9 @@ export function getStitchClient(): StitchClient {
   return cachedClient;
 }
 
+/**
+ * Close the cached Stitch client connection
+ */
 export async function closeStitchClient(): Promise<void> {
   if (cachedClient) {
     await cachedClient.client.close();

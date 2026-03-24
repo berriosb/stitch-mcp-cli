@@ -25,7 +25,7 @@ export async function watch(
     process.exit(1);
   }
 
-  console.log(`👀 Watching project ${projectId} for changes...`);
+  console.log(`[W] Watching project ${projectId} for changes...`);
   console.log(`   Output: ${outputDir}`);
   console.log(`   Framework: ${framework}`);
   console.log(`   Interval: ${intervalMs}ms`);
@@ -48,7 +48,7 @@ export async function watch(
       const newScreens = screens.filter((s) => !lastScreenIds.includes(s.screenId));
 
       if (screens.length !== lastScreenCount || newScreens.length > 0) {
-        console.log(`📱 ${screens.length} screens detected`);
+        console.log(`[D] ${screens.length} screens detected`);
 
         for (const screen of screens) {
           const html = await screen.getHtml();
@@ -60,7 +60,7 @@ export async function watch(
           fs.writeFileSync(filePath, code);
         }
 
-        console.log(`✅ Synced ${screens.length} screens\n`);
+        console.log(`OK Synced ${screens.length} screens\n`);
         lastScreenCount = screens.length;
         lastScreenIds = currentIds;
       }
@@ -75,7 +75,7 @@ export async function watch(
 
   process.on("SIGINT", () => {
     clearInterval(interval);
-    console.log("\n\n👋 Stopped watching");
+    console.log("\n\n-- Stopped watching");
     process.exit(0);
   });
 }

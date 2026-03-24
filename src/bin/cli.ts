@@ -10,6 +10,20 @@ import { watch } from "../commands/watch.js";
 import { cache } from "../commands/cache.js";
 import { evalCmd } from "../commands/eval.js";
 import { designMd } from "../commands/design-md.js";
+import { closeStitchClient } from "../lib/stitch-client.js";
+
+let isShuttingDown = false;
+
+async function shutdown(signal: string) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.error(`\n${signal}, cerrando...`);
+  await closeStitchClient();
+  process.exit(0);
+}
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 const program = new Command();
 
