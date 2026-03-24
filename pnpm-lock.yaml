@@ -14,9 +14,6 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.6.1
         version: 1.27.1(zod@3.25.76)
-      better-sqlite3:
-        specifier: ^11.7.0
-        version: 11.10.0
       commander:
         specifier: ^12.1.0
         version: 12.1.0
@@ -63,6 +60,10 @@ importers:
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.19.15)
+    optionalDependencies:
+      better-sqlite3:
+        specifier: ^11.7.0
+        version: 11.10.0
 
 packages:
 
@@ -2432,22 +2433,26 @@ snapshots:
 
   balanced-match@1.0.2: {}
 
-  base64-js@1.5.1: {}
+  base64-js@1.5.1:
+    optional: true
 
   better-sqlite3@11.10.0:
     dependencies:
       bindings: 1.5.0
       prebuild-install: 7.1.3
+    optional: true
 
   bindings@1.5.0:
     dependencies:
       file-uri-to-path: 1.0.0
+    optional: true
 
   bl@4.1.0:
     dependencies:
       buffer: 5.7.1
       inherits: 2.0.4
       readable-stream: 3.6.2
+    optional: true
 
   body-parser@2.2.2:
     dependencies:
@@ -2478,6 +2483,7 @@ snapshots:
     dependencies:
       base64-js: 1.5.1
       ieee754: 1.2.1
+    optional: true
 
   bytes@3.1.2: {}
 
@@ -2517,7 +2523,8 @@ snapshots:
 
   check-error@2.1.3: {}
 
-  chownr@1.1.4: {}
+  chownr@1.1.4:
+    optional: true
 
   cliui@7.0.4:
     dependencies:
@@ -2708,16 +2715,19 @@ snapshots:
   decompress-response@6.0.0:
     dependencies:
       mimic-response: 3.1.0
+    optional: true
 
   deep-eql@5.0.2: {}
 
-  deep-extend@0.6.0: {}
+  deep-extend@0.6.0:
+    optional: true
 
   depd@2.0.0: {}
 
   detect-indent@6.1.0: {}
 
-  detect-libc@2.1.2: {}
+  detect-libc@2.1.2:
+    optional: true
 
   detect-newline@3.1.0: {}
 
@@ -2839,7 +2849,8 @@ snapshots:
     dependencies:
       eventsource-parser: 3.0.6
 
-  expand-template@2.0.3: {}
+  expand-template@2.0.3:
+    optional: true
 
   expect-type@1.3.0: {}
 
@@ -2893,7 +2904,8 @@ snapshots:
     dependencies:
       escape-string-regexp: 1.0.5
 
-  file-uri-to-path@1.0.0: {}
+  file-uri-to-path@1.0.0:
+    optional: true
 
   filelist@1.0.6:
     dependencies:
@@ -2932,7 +2944,8 @@ snapshots:
 
   fresh@2.0.0: {}
 
-  fs-constants@1.0.0: {}
+  fs-constants@1.0.0:
+    optional: true
 
   fsevents@2.3.3:
     optional: true
@@ -2992,7 +3005,8 @@ snapshots:
     dependencies:
       ini: 1.3.8
 
-  github-from-package@0.0.0: {}
+  github-from-package@0.0.0:
+    optional: true
 
   gopd@1.2.0: {}
 
@@ -3039,7 +3053,8 @@ snapshots:
     dependencies:
       safer-buffer: 2.1.2
 
-  ieee754@1.2.1: {}
+  ieee754@1.2.1:
+    optional: true
 
   indent-string@4.0.0: {}
 
@@ -3170,7 +3185,8 @@ snapshots:
     dependencies:
       mime-db: 1.54.0
 
-  mimic-response@3.1.0: {}
+  mimic-response@3.1.0:
+    optional: true
 
   min-indent@1.0.1: {}
 
@@ -3190,7 +3206,8 @@ snapshots:
 
   minimist@1.2.8: {}
 
-  mkdirp-classic@0.5.3: {}
+  mkdirp-classic@0.5.3:
+    optional: true
 
   modify-values@1.0.1: {}
 
@@ -3198,7 +3215,8 @@ snapshots:
 
   nanoid@3.3.11: {}
 
-  napi-build-utils@2.0.0: {}
+  napi-build-utils@2.0.0:
+    optional: true
 
   negotiator@1.0.0: {}
 
@@ -3207,6 +3225,7 @@ snapshots:
   node-abi@3.89.0:
     dependencies:
       semver: 7.7.4
+    optional: true
 
   normalize-package-data@2.5.0:
     dependencies:
@@ -3364,6 +3383,7 @@ snapshots:
       simple-get: 4.0.1
       tar-fs: 2.1.4
       tunnel-agent: 0.6.0
+    optional: true
 
   process-nextick-args@2.0.1: {}
 
@@ -3404,6 +3424,7 @@ snapshots:
       ini: 1.3.8
       minimist: 1.2.8
       strip-json-comments: 2.0.1
+    optional: true
 
   read-pkg-up@3.0.0:
     dependencies:
@@ -3584,13 +3605,15 @@ snapshots:
 
   siginfo@2.0.0: {}
 
-  simple-concat@1.0.1: {}
+  simple-concat@1.0.1:
+    optional: true
 
   simple-get@4.0.1:
     dependencies:
       decompress-response: 6.0.0
       once: 1.4.0
       simple-concat: 1.0.1
+    optional: true
 
   sonic-boom@4.2.1:
     dependencies:
@@ -3673,7 +3696,8 @@ snapshots:
     dependencies:
       min-indent: 1.0.1
 
-  strip-json-comments@2.0.1: {}
+  strip-json-comments@2.0.1:
+    optional: true
 
   strip-json-comments@5.0.3: {}
 
@@ -3689,6 +3713,7 @@ snapshots:
       mkdirp-classic: 0.5.3
       pump: 3.0.4
       tar-stream: 2.2.0
+    optional: true
 
   tar-stream@2.2.0:
     dependencies:
@@ -3697,6 +3722,7 @@ snapshots:
       fs-constants: 1.0.0
       inherits: 2.0.4
       readable-stream: 3.6.2
+    optional: true
 
   text-extensions@1.9.0: {}
 
@@ -3739,6 +3765,7 @@ snapshots:
   tunnel-agent@0.6.0:
     dependencies:
       safe-buffer: 5.2.1
+    optional: true
 
   type-fest@0.18.1: {}
 
