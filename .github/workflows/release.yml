@@ -23,8 +23,14 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
+      - name: Install native build dependencies
+        run: sudo apt-get update && sudo apt-get install -y python3 build-essential
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Rebuild native modules
+        run: pnpm rebuild better-sqlite3
 
       - name: Typecheck
         run: pnpm run typecheck
@@ -52,6 +58,7 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
