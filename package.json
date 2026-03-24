@@ -1,6 +1,6 @@
 {
   "name": "stitch-mcp-cli",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "CLI + MCP proxy para Google Stitch con scaffolding multi-framework",
   "type": "module",
   "main": "./dist/index.js",
