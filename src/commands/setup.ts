@@ -163,6 +163,9 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
         }
       }
 
+      // Remove invalid mcpServers key if present (from old config)
+      delete existingConfig.mcpServers;
+
       const mcp = (existingConfig.mcp as Record<string, unknown>) || {};
       mcp.stitch = {
         type: "local",
@@ -173,6 +176,11 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
         },
       };
       existingConfig.mcp = mcp;
+
+      // Ensure $schema is present
+      if (!existingConfig.$schema) {
+        existingConfig.$schema = "https://opencode.ai/config.json";
+      }
 
       fs.writeFileSync(editorConfigPath, JSON.stringify(existingConfig, null, 2));
     } else {
