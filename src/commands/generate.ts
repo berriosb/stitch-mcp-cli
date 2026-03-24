@@ -23,7 +23,7 @@ export async function generate(
   const validated = validateOrThrow(GenerateOptionsSchema, options);
 
   try {
-    const { stitch } = getStitchClient();
+    const { stitch, callTool } = getStitchClient();
     let project;
     let projectId = validated.projectId;
 
@@ -51,7 +51,7 @@ export async function generate(
     let metadata = readMetadata();
     if (!metadata || metadata.projectId !== projectId) {
       console.log("Inicializando metadata para el proyecto...");
-      const projectDetails = await stitch.callTool("get_project", { name: `projects/${projectId}` }) as any;
+      const projectDetails = await callTool("get_project", { name: `projects/${projectId}` }) as any;
       metadata = initMetadata(projectId, {
         title: projectDetails?.title || "Untitled",
         deviceType: projectDetails?.deviceType || "MOBILE",

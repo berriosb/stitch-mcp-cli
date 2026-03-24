@@ -3,7 +3,7 @@ import "dotenv/config";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { loadConfig } from "./lib/config.js";
+import { loadSecureConfig } from "./lib/secure-config.js";
 import { getStitchClient, closeStitchClient } from "./lib/stitch-client.js";
 import { getCache } from "./lib/cache.js";
 import { transformToFramework } from "./lib/template-engine.js";
@@ -12,7 +12,7 @@ import { logger } from "./lib/logger.js";
 import { checkRateLimit } from "./lib/rate-limiter.js";
 import type { CachedProject, CachedScreen } from "./types/index.js";
 
-const config = loadConfig();
+const config = loadSecureConfig();
 const apiKey = config.apiKey || process.env.STITCH_API_KEY;
 
 if (!apiKey) {
@@ -101,14 +101,20 @@ server.registerTool(
         filtered = projects.filter(p => p.id.toLowerCase().includes(term));
       }
 
+      const safeProjects = filtered.map(p => ({
+        id: p.id,
+        title: (p as any).title || p.id,
+        screenCount: (p as any).screenCount ?? 0,
+      }));
+
       if (json) {
-        toolLogger.info({ count: filtered.length }, "Returning projects as JSON");
-        return { content: [{ type: "text", text: JSON.stringify(filtered, null, 2) }], structuredContent: { projects: filtered } };
+        toolLogger.info({ count: safeProjects.length }, "Returning projects as JSON");
+        return { content: [{ type: "text", text: JSON.stringify(safeProjects, null, 2) }], structuredContent: { projects: safeProjects } };
       }
 
-      const output = filtered.length === 0
+      const output = safeProjects.length === 0
         ? "No hay proyectos. Crea uno en https://stitch.withgoogle.com"
-        : `Proyectos (${filtered.length}):\n${filtered.map(p => `- ${p.id}`).join("\n")}`;
+        : `Proyectos (${safeProjects.length}):\n${safeProjects.map(p => `- ${p.id} (${p.title})`).join("\n")}`;
       toolLogger.info({ count: filtered.length }, "Projects listed successfully");
       return { content: [{ type: "text", text: output }] };
     } catch (error) {

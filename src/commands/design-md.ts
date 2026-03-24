@@ -121,7 +121,7 @@ export async function designMd(options: { projectId?: string; output?: string; s
   const outputPath = options.output || "DESIGN.md";
 
   try {
-    const { stitch } = getStitchClient();
+    const { stitch, callTool } = getStitchClient();
 
     let projectId = options.projectId;
     let project;
@@ -146,7 +146,7 @@ export async function designMd(options: { projectId?: string; output?: string; s
 
     console.log(`Fetching project details for: ${projectId}`);
 
-    const projectDetails = await stitch.callTool("get_project", { name: `projects/${projectId}` }) as any;
+    const projectDetails = await callTool("get_project", { name: `projects/${projectId}` }) as any;
 
     const metadata: StitchMetadata = {
       projectId: projectId!,
