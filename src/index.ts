@@ -11,6 +11,24 @@ import { isOnline } from "./lib/network.js";
 import { logger } from "./lib/logger.js";
 import { checkRateLimit } from "./lib/rate-limiter.js";
 import type { CachedProject, CachedScreen } from "./types/index.js";
+import type { Screen } from "@google/stitch-sdk";
+import fs from "fs";
+import path from "path";
+
+async function resolveHtml(screen: Screen): Promise<string> {
+  const raw = await screen.getHtml();
+  if (!raw) return "<div></div>";
+  if (raw.startsWith("http")) {
+    try {
+      const resp = await fetch(raw);
+      if (!resp.ok) return "<div></div>";
+      return await resp.text();
+    } catch {
+      return "<div></div>";
+    }
+  }
+  return raw;
+}
 
 const config = loadSecureConfig();
 const apiKey = config.apiKey || process.env.STITCH_API_KEY;
@@ -101,10 +119,10 @@ server.registerTool(
         filtered = projects.filter(p => p.id.toLowerCase().includes(term));
       }
 
-      const safeProjects = filtered.map(p => ({
+      const safeProjects = filtered.map((p: any) => ({
         id: p.id,
-        title: (p as any).title || p.id,
-        screenCount: (p as any).screenCount ?? 0,
+        title: p.data?.title || p.data?.displayName || p.id,
+        screenCount: p.data?.screenCount ?? p.data?.screens?.length ?? 0,
       }));
 
       if (json) {
@@ -186,19 +204,32 @@ server.registerTool(
       const { stitch } = getStitchClient();
       const project = stitch.project(projectId);
 
+      const outDir = path.resolve(output);
+      if (!fs.existsSync(outDir)) {
+        fs.mkdirSync(outDir, { recursive: true });
+      }
+
       if (screenId) {
         const screen = await project.getScreen(screenId);
-        const html = await screen.getHtml();
-        const filePath = `${output}/screen-${screenId}.html`;
+        const html = await resolveHtml(screen);
+        const filePath = path.join(outDir, `screen-${screenId}.html`);
+        fs.writeFileSync(filePath, html, "utf-8");
         return {
           content: [{ type: "text", text: `Screen sincronizado: ${filePath}\n\n${html.slice(0, 500)}...` }],
-          structuredContent: { filePath, html }
+          structuredContent: { filePath, htmlPreview: html.slice(0, 500) }
         };
       } else {
         const screens = await project.screens();
+        const files: string[] = [];
+        for (const screen of screens) {
+          const html = await resolveHtml(screen);
+          const filePath = path.join(outDir, `screen-${screen.screenId}.html`);
+          fs.writeFileSync(filePath, html, "utf-8");
+          files.push(filePath);
+        }
         return {
-          content: [{ type: "text", text: `Sincronizados ${screens.length} pantallas a ${output}` }],
-          structuredContent: { screenCount: screens.length, output }
+          content: [{ type: "text", text: `Sincronizados ${screens.length} pantallas a ${outDir}` }],
+          structuredContent: { screenCount: screens.length, output: outDir, files }
         };
       }
     } catch (error) {
@@ -227,7 +258,7 @@ server.registerTool(
 
         for (const route of routeList) {
           const screen = screens.length > 0 ? screens[0] : null;
-          const html = screen ? await screen.getHtml() : "<div></div>";
+          const html = screen ? await resolveHtml(screen) : "<div></div>";
           const componentName = `Page${route.replace(/[\/\-]/g, "_") || "Home"}`;
           const code = await transformToFramework({ framework, componentName, html });
           results[route] = code;
@@ -241,7 +272,7 @@ server.registerTool(
 
       const results: Record<string, string> = {};
       for (const screen of screens) {
-        const html = await screen.getHtml();
+        const html = await resolveHtml(screen);
         const componentName = `Screen${screen.screenId.slice(0, 8)}`;
         const code = await transformToFramework({ framework, componentName, html });
         results[screen.screenId] = code;
@@ -331,7 +362,7 @@ server.registerTool(
       };
 
       for (const screen of screens) {
-        const html = await screen.getHtml();
+        const html = await resolveHtml(screen);
         cachedProject.screens.push({
           id: screen.screenId,
           screenId: screen.screenId,
