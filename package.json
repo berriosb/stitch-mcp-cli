@@ -4,9 +4,15 @@
   "description": "CLI + MCP proxy para Google Stitch con scaffolding multi-framework",
   "type": "module",
   "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "bin": {
     "stitch-mcp-cli": "./dist/bin/cli.js"
   },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "dev": "tsx watch src/bin/cli.ts",
     "build": "tsc",
@@ -24,10 +30,8 @@
     "release": "standard-version"
   },
   "engines": {
-    "node": ">=20",
-    "pnpm": ">=9.0"
+    "node": ">=20"
   },
-  "packageManager": "pnpm@9.0.0",
   "keywords": [
     "stitch",
     "mcp",
