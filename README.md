@@ -2,8 +2,9 @@
 
 **CLI + MCP Server para Google Stitch con scaffolding multi-framework**
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![Node](https://img.shields.io/badge/node-%3E%3D18-green)
+![Version](https://img.shields.io/badge/version-0.1.5-blue)
+![Node](https://img.shields.io/badge/node-%3E%3D20-green)
+![pnpm](https://img.shields.io/badge/pnpm-10.23.0-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Características
@@ -23,8 +24,14 @@
 ## Quickstart
 
 ```bash
-# 1. Instalar
+# 1. Instalar (recomendado con pnpm)
+pnpm add -g stitch-mcp-cli
+
+# O con npm
 npm install -g stitch-mcp-cli
+
+# O con npx (sin instalar)
+npx stitch-mcp-cli auth --api-key TU_API_KEY
 
 # 2. Configurar API key (encriptada automáticamente)
 stitch-mcp-cli auth --api-key TU_API_KEY
@@ -43,24 +50,40 @@ Obtén tu API key en: https://stitch.withgoogle.com/settings
 El CLI también funciona como **MCP Server** para integrar con AI coding agents:
 
 ```bash
-#Modo stdio (local) - Para IDEs
+# Modo stdio (local) - Para IDEs
 stitch-mcp-cli mcp
 
-# Modo HTTP (remoto) - Puerto 3100
+# Modo HTTP (remoto) - Puerto 3100 por defecto
 stitch-mcp-cli mcp:http
+
+# Puerto personalizado
+MCP_PORT=8080 stitch-mcp-cli mcp:http
+
+# Host personalizado
+MCP_HOST=0.0.0.0 MCP_PORT=8080 stitch-mcp-cli mcp:http
 ```
 
 ### Tools disponibles en MCP:
 
-| Tool | Descripción |
-|------|-------------|
-| `stitch_list_projects` | Lista proyectos (con búsqueda) |
-| `stitch_generate_screen` | Genera pantalla desde prompt |
-| `stitch_sync_screen` | Sync a HTML |
-| `stitch_export_framework` | Exporta a framework |
-| `stitch_cache_status` | Estado de caché |
-| `stitch_cache_clear` | Limpia caché |
-| `stitch_cache_sync` | Sincroniza proyecto a caché |
+| Tool | Parámetros | Descripción |
+|------|------------|-------------|
+| `stitch_list_projects` | `search?: string`, `offline?: boolean` | Lista proyectos (con búsqueda) |
+| `stitch_generate_screen` | `prompt: string`, `projectId: string`, `device?: 'mobile'\|'desktop'` | Genera pantalla desde prompt |
+| `stitch_sync_screen` | `projectId: string`, `screenId?: string`, `output?: string` | Sync a HTML |
+| `stitch_export_framework` | `projectId: string`, `framework: string`, `output?: string` | Exporta a framework |
+| `stitch_cache_status` | - | Estado de caché |
+| `stitch_cache_clear` | - | Limpia caché |
+| `stitch_cache_sync` | `projectId: string` | Sincroniza proyecto a caché |
+
+### Ejemplo de uso con MCP Inspector
+
+```bash
+# Inspeccionar servidor MCP
+npx @modelcontextprotocol/inspector node dist/index.js
+
+# O conpnpm
+pnpm run inspector
+```
 
 ## Comandos
 
@@ -75,7 +98,7 @@ stitch-mcp-cli mcp:http
 | `watch` | Watch mode |
 | `cache` | Gestionar caché |
 | `eval` | Ejecutar evaluaciones MCP |
-| `design-md` | Extraer design system |
+| `design-md` | Extraer design system a DESIGN.md |
 
 ### Auth
 
@@ -134,7 +157,75 @@ stitch-mcp-cli export <project-id> --framework vue --output ./src/views
 
 # Exportar a Next.js
 stitch-mcp-cli export <project-id> --framework nextjs --output ./app
+
+# Exportar a Svelte
+stitch-mcp-cli export <project-id> --framework svelte --output ./src/lib
+
+# Exportar a Nuxt
+stitch-mcp-cli export <project-id> --framework nuxt --output ./pages
+
+# Exportar a SolidJS
+stitch-mcp-cli export <project-id> --framework solid --output ./src/components
+
+# Exportar a Angular
+stitch-mcp-cli export <project-id> --framework angular --output ./src/app/components
+
+# Exportar a HTML vanilla
+stitch-mcp-cli export <project-id> --framework vanilla --output ./designs
 ```
+
+**Frameworks soportados:** `react`, `vue`, `svelte`, `nextjs`, `nuxt`, `solid`, `angular`, `vanilla`
+
+### Eval
+
+Ejecuta evaluaciones MCP para benchmarking de LLMs:
+
+```bash
+# Ejecutar evaluaciones con archivo por defecto
+stitch-mcp-cli eval
+
+# Ejecutar con archivo personalizado
+stitch-mcp-cli eval --file ./custom-eval.xml
+
+# Guardar resultados en JSON
+stitch-mcp-cli eval --results
+```
+
+El archivo de evaluación debe estar en `evaluations/stitch-mcp-eval.xml` con formato:
+
+```xml
+<qa_pair>
+  <question>Lista todos los proyectos</question>
+  <answer>Lista de proyectos</answer>
+  <tool_used>list_projects</tool_used>
+</qa_pair>
+```
+
+### Design-MD
+
+Extrae el design system del proyecto a un archivo `DESIGN.md`:
+
+```bash
+# Generar DESIGN.md con projectId desde caché
+stitch-mcp-cli design-md
+
+# Especificar proyecto
+stitch-mcp-cli design-md --project-id <id>
+
+# Personalizar output
+stitch-mcp-cli design-md --output ./docs/DESIGN.md
+
+# Sincronizar pantallas también
+stitch-mcp-cli design-md --sync
+```
+
+El archivo generado incluye:
+- Tema visual y atmósfera
+- Paleta de colores con roles
+- Reglas de tipografía
+- Estilos de componentes
+- Principios de layout
+- Tokens para generación Stitch
 
 ### Cache
 
@@ -149,9 +240,67 @@ stitch-mcp-cli cache --clear
 stitch-mcp-cli cache --sync <project-id>
 ```
 
+## Templates Personalizados
+
+Puedes crear templates custom para frameworks sobrescribiendo los defaults:
+
+```
+~/.stitch-mcp-cli/templates/
+├── react/
+│   └── component.ejs
+├── vue/
+│   └── component.ejs
+├── svelte/
+│   └── component.ejs
+└── custom-framework/
+    └── component.ejs
+```
+
+Variables disponibles en templates EJS:
+
+| Variable | Tipo | Descripción |
+|----------|------|-------------|
+| `componentName` | string | Nombre del componente en PascalCase |
+| `html` | string | HTML generado por Stitch |
+| `css` | string\|undefined | CSS extraído del diseño |
+
+Ejemplo de template React custom:
+
+```ejs
+import React from 'react';
+import styles from './<%= componentName %>.module.css';
+
+interface <%= componentName %>Props {
+  className?: string;
+}
+
+export const <%= componentName %>: React.FC<<%= componentName %>Props> = ({ className }) => {
+  return (
+    <div className={`${styles.container} ${className || ''}`}>
+      <style>{`<%= css || '' %>`}</style>
+      <%= html %>
+    </div>
+  );
+};
+```
+
+### Configurar directorio de templates
+
+```bash
+# En ~/.stitch-mcp-cli/config.json
+{
+  "templateDir": "/path/to/custom/templates"
+}
+
+# O con variable de entorno
+STITCH_TEMPLATE_DIR=./templates stitch-mcp-cli export <project-id> --framework react
+```
+
 ## Configuración de IDEs
 
 ### Cursor
+
+Archivo: `~/.cursor/mcp.json`
 
 ```json
 {
@@ -173,7 +322,7 @@ stitch-mcp-cli cache --sync <project-id>
 claude mcp add stitch -- npx stitch-mcp-cli
 ```
 
-### VS Code
+O manualmente en `~/.claude/claude_desktop_config.json`:
 
 ```json
 {
@@ -187,6 +336,100 @@ claude mcp add stitch -- npx stitch-mcp-cli
     }
   }
 }
+```
+
+### VS Code
+
+Archivo: `.vscode/mcp.json` o configuración de workspace
+
+```json
+{
+  "mcpServers": {
+    "stitch": {
+      "command": "npx",
+      "args": ["stitch-mcp-cli"],
+      "env": {
+        "STITCH_API_KEY": "${STITCH_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### OpenCode
+
+Archivo: `~/.config/opencode/opencode.json`
+
+```json
+{
+  "mcpServers": {
+    "stitch": {
+      "command": "npx",
+      "args": ["stitch-mcp-cli"],
+      "env": {
+        "STITCH_API_KEY": "${STITCH_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### Kilo
+
+Archivo: `~/.kilo/mcp_config.json` o configuración del proyecto
+
+```json
+{
+  "mcpServers": {
+    "stitch": {
+      "command": "npx",
+      "args": ["stitch-mcp-cli"],
+      "env": {
+        "STITCH_API_KEY": "${STITCH_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### Codex CLI
+
+Archivo: `~/.codex/config.toml`
+
+```toml
+[mcp.stitch]
+command = "npx"
+args = ["stitch-mcp-cli"]
+env = { STITCH_API_KEY = "${STITCH_API_KEY}" }
+```
+
+### Antigravity
+
+Archivo: `~/.antigravity/mcp_config.json`
+
+```json
+{
+  "mcpServers": {
+    "stitch": {
+      "command": "npx",
+      "args": ["stitch-mcp-cli"],
+      "env": {
+        "STITCH_API_KEY": "${STITCH_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### Configuración automática
+
+El comando `setup` detecta y configura automáticamente todos los IDEs instalados:
+
+```bash
+stitch-mcp-cli setup
+
+# Configurar solo IDEs específicos
+stitch-mcp-cli setup --editors cursor,claude,opencode
 ```
 
 ## Desarrollo
@@ -278,6 +521,86 @@ pnpm run changelog
 - [ ] MCP sobre HTTP con autenticación
 - [ ] Deploy a cloud functions
 - [ ] Multi-user support
+
+## Troubleshooting
+
+### Error: Cannot find module '@google/stitch-sdk'
+
+```bash
+# Reinstalar dependencias
+pnpm install
+
+# O limpiar caché y reinstalar
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
+```
+
+### Error: better-sqlite3 compila lentamente
+
+`better-sqlite3` es una dependencia opcional para caché offline SQLite. Si no compila, el CLI usa automáticamente JSON como fallback.
+
+```bash
+# Opción 1: Usar pnpm (más rápido)
+pnpm install -g stitch-mcp-cli
+
+# Opción 2: Ignorar scripts de compilación
+npm install -g stitch-mcp-cli --ignore-scripts
+```
+
+### Error: API key inválida
+
+```bash
+# Verificar configuración
+stitch-mcp-cli auth --check
+
+# Reconfigurar API key
+stitch-mcp-cli auth --api-key <nueva-key>
+```
+
+### Error: EACCES permission denied
+
+```bash
+# Permisos del directorio de configuración
+chmod 700 ~/.stitch-mcp-cli
+chmod 600 ~/.stitch-mcp-cli/config.json
+chmod 600 ~/.stitch-mcp-cli/.key
+```
+
+### MCP Server no aparece en mi IDE
+
+1. Verifica que el binario esté instalado:
+
+```bash
+which stitch-mcp-cli
+# Debe retornar: /usr/local/bin/stitch-mcp-cli o similar
+```
+
+2. Si usas pnpm global, agrega el path:
+
+```bash
+# Agregar a ~/.bashrc o ~/.zshrc
+export PATH="$(pnpm global bin):$PATH"
+```
+
+3. Reinicia el IDE después de configurar
+
+### Rate limiting (429 Too Many Requests)
+
+El CLI tiene rate limiting interno de 60 req/min. Si ves este error:
+
+- Espera 1 minuto antes de continuar
+- Usa modo offline: `stitch-mcp-cli projects --offline`
+- Aumenta el límite: `STITCH_RATE_LIMIT=120 stitch-mcp-cli mcp`
+
+### Logs de depuración
+
+```bash
+# Activar logs detallados
+LOG_LEVEL=debug stitch-mcp-cli mcp
+
+# Guardar logs en archivo
+LOG_LEVEL=debug stitch-mcp-cli mcp 2>&1 | tee stitch.log
+```
 
 ## Licencia
 

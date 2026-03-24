@@ -1,16 +1,16 @@
 import { getStitchClient } from "../lib/stitch-client.js";
-import { SqliteCacheManager } from "../lib/sqlite-cache-manager.js";
+import { getCache } from "../lib/cache.js";
 import type { CachedProject, CachedScreen } from "../types/index.js";
 
-const cm = new SqliteCacheManager();
-
 /**
- * Manage local SQLite cache for offline access
+ * Manage local cache for offline access
  * @param options.status - Show cache status
  * @param options.clear - Clear all cached data
  * @param options.sync - Sync project to cache by ID
  */
 export async function cache(options: { status?: boolean; clear?: boolean; sync?: string }) {
+  const cm = await getCache();
+
   if (options.clear) {
     await cm.clearCache();
     console.log("OK Cache eliminada");

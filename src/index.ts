@@ -5,7 +5,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { loadConfig } from "./lib/config.js";
 import { getStitchClient, closeStitchClient } from "./lib/stitch-client.js";
-import { SqliteCacheManager } from "./lib/sqlite-cache-manager.js";
+import { getCache } from "./lib/cache.js";
 import { transformToFramework } from "./lib/template-engine.js";
 import { isOnline } from "./lib/network.js";
 import { logger } from "./lib/logger.js";
@@ -78,7 +78,7 @@ server.registerTool(
     try {
       toolLogger.info({ search, json }, "Listing projects");
       const online = await isOnline();
-      const cm = new SqliteCacheManager();
+      const cm = await getCache();
 
       if (!online) {
         const cached = await cm.listProjects();
@@ -261,7 +261,7 @@ server.registerTool(
   },
   async () => {
     try {
-      const cm = new SqliteCacheManager();
+      const cm = await getCache();
       const size = cm.getCacheSize();
       const projects = await cm.listProjects();
 
@@ -270,7 +270,7 @@ server.registerTool(
         screenCount: size.screenCount,
         sizeKB: parseFloat((size.sizeBytes / 1024).toFixed(2)),
         cacheDir: cm.getCacheDir(),
-        projects: projects.map(p => ({ name: p.name, screenCount: p.screens.length }))
+        projects: projects.map((p: CachedProject) => ({ name: p.name, screenCount: p.screens.length }))
       };
 
       return {
@@ -293,7 +293,7 @@ server.registerTool(
   },
   async () => {
     try {
-      const cm = new SqliteCacheManager();
+      const cm = await getCache();
       await cm.clearCache();
       return { content: [{ type: "text", text: "Caché eliminada correctamente" }] };
     } catch (error) {
@@ -334,7 +334,7 @@ server.registerTool(
         });
       }
 
-      const cm = new SqliteCacheManager();
+      const cm = await getCache();
       await cm.saveProject(cachedProject);
 
       return {

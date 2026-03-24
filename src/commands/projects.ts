@@ -1,5 +1,5 @@
 import { getStitchClient } from "../lib/stitch-client.js";
-import { SqliteCacheManager } from "../lib/sqlite-cache-manager.js";
+import { getCache } from "../lib/cache.js";
 import { isOnline } from "../lib/network.js";
 import { ProjectsOptionsSchema, validateOrThrow } from "../lib/schemas.js";
 
@@ -8,7 +8,7 @@ export async function projects(options: { json?: boolean; search?: string; offli
   const online = await isOnline();
 
   if (!online && validated.offline) {
-    const cm = new SqliteCacheManager();
+    const cm = await getCache();
     const cached = await cm.listProjects();
     
     if (validated.json) {
