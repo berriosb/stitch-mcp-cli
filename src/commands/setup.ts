@@ -8,15 +8,15 @@ interface Editor {
   name: string;
   cmd: string;
   configPath: string;
-  format: "json" | "toml";
+  format: "json" | "toml" | "opencode";
 }
 
 const EDITORS: Editor[] = [
   { name: "Cursor", cmd: "cursor", configPath: ".cursor/mcp.json", format: "json" },
   { name: "Claude Code", cmd: "claude", configPath: ".claude/claude_desktop_config.json", format: "json" },
   { name: "VS Code", cmd: "code", configPath: ".config/Code/User/global.json", format: "json" },
-  { name: "OpenCode", cmd: "opencode", configPath: ".config/opencode/opencode.json", format: "json" },
-  { name: "Kilo Code", cmd: "kilo", configPath: ".config/opencode/opencode.json", format: "json" },
+  { name: "OpenCode", cmd: "opencode", configPath: ".config/opencode/opencode.json", format: "opencode" },
+  { name: "Kilo Code", cmd: "kilo", configPath: ".config/opencode/opencode.json", format: "opencode" },
   { name: "Antigravity", cmd: "antigravity", configPath: ".antigravity/mcp_config.json", format: "json" },
   { name: "Codex CLI", cmd: "codex", configPath: ".codex/config.toml", format: "toml" },
 ];
@@ -40,6 +40,22 @@ args = ["stitch-mcp-cli"]
 [input]
 STITCH_API_KEY = "\${STITCH_API_KEY}"
 `;
+  }
+
+  if (editor.format === "opencode") {
+    return JSON.stringify({
+      $schema: "https://opencode.ai/config.json",
+      mcp: {
+        stitch: {
+          type: "local",
+          command: ["npx", "stitch-mcp-cli"],
+          enabled: true,
+          environment: {
+            STITCH_API_KEY: "${STITCH_API_KEY}",
+          },
+        },
+      },
+    }, null, 2);
   }
 
   return JSON.stringify({
@@ -135,6 +151,28 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
         },
       };
       existingConfig.mcpServers = mcpServers;
+
+      fs.writeFileSync(editorConfigPath, JSON.stringify(existingConfig, null, 2));
+    } else if (editor.format === "opencode") {
+      let existingConfig: Record<string, unknown> = {};
+      if (fs.existsSync(editorConfigPath)) {
+        try {
+          existingConfig = JSON.parse(fs.readFileSync(editorConfigPath, "utf-8"));
+        } catch {
+          existingConfig = {};
+        }
+      }
+
+      const mcp = (existingConfig.mcp as Record<string, unknown>) || {};
+      mcp.stitch = {
+        type: "local",
+        command: ["npx", "stitch-mcp-cli"],
+        enabled: true,
+        environment: {
+          STITCH_API_KEY: "${STITCH_API_KEY}",
+        },
+      };
+      existingConfig.mcp = mcp;
 
       fs.writeFileSync(editorConfigPath, JSON.stringify(existingConfig, null, 2));
     } else {

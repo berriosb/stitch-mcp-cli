@@ -362,11 +362,13 @@ Archivo: `~/.config/opencode/opencode.json`
 
 ```json
 {
-  "mcpServers": {
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
     "stitch": {
-      "command": "npx",
-      "args": ["stitch-mcp-cli"],
-      "env": {
+      "type": "local",
+      "command": ["npx", "stitch-mcp-cli"],
+      "enabled": true,
+      "environment": {
         "STITCH_API_KEY": "${STITCH_API_KEY}"
       }
     }
@@ -376,15 +378,17 @@ Archivo: `~/.config/opencode/opencode.json`
 
 ### Kilo
 
-Archivo: `~/.kilo/mcp_config.json` o configuración del proyecto
+Archivo: `~/.config/kilo/kilo.json`
 
 ```json
 {
-  "mcpServers": {
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
     "stitch": {
-      "command": "npx",
-      "args": ["stitch-mcp-cli"],
-      "env": {
+      "type": "local",
+      "command": ["npx", "stitch-mcp-cli"],
+      "enabled": true,
+      "environment": {
         "STITCH_API_KEY": "${STITCH_API_KEY}"
       }
     }
