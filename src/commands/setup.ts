@@ -32,13 +32,11 @@ function detectEditors(): Editor[] {
   });
 }
 
-function getMcpConfig(editor: Editor, apiKeyEnv: string): string {
+function getMcpConfig(editor: Editor): string {
   if (editor.format === "toml") {
     return `\n[[mcp_servers.stitch]]
 command = "npx"
 args = ["stitch-mcp-cli"]
-[input]
-STITCH_API_KEY = "\${STITCH_API_KEY}"
 `;
   }
 
@@ -50,9 +48,6 @@ STITCH_API_KEY = "\${STITCH_API_KEY}"
           type: "local",
           command: ["npx", "stitch-mcp-cli"],
           enabled: true,
-          environment: {
-            STITCH_API_KEY: "${STITCH_API_KEY}",
-          },
         },
       },
     }, null, 2);
@@ -63,9 +58,6 @@ STITCH_API_KEY = "\${STITCH_API_KEY}"
       stitch: {
         command: "npx",
         args: ["stitch-mcp-cli"],
-        env: {
-          STITCH_API_KEY: "\${STITCH_API_KEY}",
-        },
       },
     },
   }, null, 2);
@@ -77,19 +69,8 @@ STITCH_API_KEY = "\${STITCH_API_KEY}"
  * @param options.verbose - Show detailed output
  */
 export async function setup(options: { editor?: string; verbose?: boolean }) {
-  const configPath = getConfigPath();
-  let apiKeyEnv = "\${STITCH_API_KEY}";
-
-  if (fs.existsSync(configPath)) {
-    try {
-      const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-      if (config.apiKey) {
-        console.log("i Usando API key de ~/.stitch-mcp-cli/config.json");
-        apiKeyEnv = "\${STITCH_API_KEY}";
-      }
-    } catch {
-      // Ignore
-    }
+  if (fs.existsSync(getConfigPath())) {
+    console.log("i Usando API key de ~/.stitch-mcp-cli/config.json (encriptada)");
   }
 
   const detected = detectEditors();
@@ -103,7 +84,6 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
         stitch: {
           command: "npx",
           args: ["stitch-mcp-cli"],
-          env: { STITCH_API_KEY: process.env.STITCH_API_KEY || "\${STITCH_API_KEY}" },
         },
       },
     }, null, 2));
@@ -130,7 +110,7 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
       fs.mkdirSync(configDir, { recursive: true });
     }
 
-    const newConfig = getMcpConfig(editor, apiKeyEnv);
+    const newConfig = getMcpConfig(editor);
 
     if (editor.format === "json") {
       let existingConfig: Record<string, unknown> = {};
@@ -146,9 +126,6 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
       mcpServers.stitch = {
         command: "npx",
         args: ["stitch-mcp-cli"],
-        env: {
-          STITCH_API_KEY: "${STITCH_API_KEY}",
-        },
       };
       existingConfig.mcpServers = mcpServers;
 
@@ -171,9 +148,6 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
         type: "local",
         command: ["npx", "stitch-mcp-cli"],
         enabled: true,
-        environment: {
-          STITCH_API_KEY: "${STITCH_API_KEY}",
-        },
       };
       existingConfig.mcp = mcp;
 
@@ -191,7 +165,6 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
         "[mcp_servers.stitch]",
         'command = "npx"',
         'args = ["stitch-mcp-cli"]',
-        "env_vars = { STITCH_API_KEY = \"${STITCH_API_KEY}\" }",
         "",
       ].join("\n");
       
@@ -216,7 +189,6 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
   console.log(`\nConfigurado en ${configured} IDE(s)`);
   console.log("\nPróximos pasos:");
   console.log("1. Si no tienes API key: stitch-mcp-cli auth --api-key <tu-key>");
-  console.log("2. Exporta la variable: export STITCH_API_KEY=<tu-key>");
-  console.log("3. Reinicia tu IDE");
-  console.log("4. El servidor MCP se iniciará automáticamente");
+  console.log("2. Reinicia tu IDE");
+  console.log("3. El servidor MCP se iniciará automáticamente");
 }
