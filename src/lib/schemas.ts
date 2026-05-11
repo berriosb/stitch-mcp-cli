@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const DeviceTypeSchema = z.enum(["mobile", "desktop", "tablet"]);
 
-export const FrameworkSchema = z.enum(["react", "vue", "svelte", "nextjs", "vanilla"]);
+export const FrameworkSchema = z.enum(["react", "vue", "svelte", "nextjs", "nuxt", "solid", "angular", "vanilla"]);
 
 export const GenerateOptionsSchema = z.object({
   projectId: z.string().optional(),

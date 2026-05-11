@@ -2,8 +2,7 @@ import fs from "fs";
 import path from "path";
 import { getStitchClient } from "../lib/stitch-client.js";
 import { transformToFramework } from "../lib/template-engine.js";
-
-type Framework = "react" | "vue" | "svelte" | "nextjs" | "vanilla";
+import { getExtension, getSupportedFrameworks, isValidFramework } from "../lib/framework-mapper.js";
 
 function routeToFilePath(route: string): string {
   if (route === "/") return "page.tsx";
@@ -25,14 +24,13 @@ export async function exportCmd(
     process.exit(1);
   }
 
-  const framework = (options.framework || "react").toLowerCase() as Framework;
+  const framework = (options.framework || "react").toLowerCase();
   const outputDir = options.output || "./stitch-export";
   const routesStr = options.routes;
-  const validFrameworks: Framework[] = ["react", "vue", "svelte", "nextjs", "vanilla"];
 
-  if (!validFrameworks.includes(framework)) {
+  if (!isValidFramework(framework)) {
     console.error(`Framework inválido: ${framework}`);
-    console.error(`Frameworks válidos: ${validFrameworks.join(", ")}`);
+    console.error(`Frameworks válidos: ${getSupportedFrameworks().join(", ")}`);
     process.exit(1);
   }
 
@@ -75,23 +73,7 @@ export async function exportCmd(
         const html = await screen.getHtml();
         const componentName = `Screen${screen.screenId.slice(0, 8)}`;
         const code = await transformToFramework({ framework, componentName, html });
-
-        let ext: string;
-        switch (framework) {
-          case "react":
-          case "nextjs":
-            ext = "tsx";
-            break;
-          case "vue":
-            ext = "vue";
-            break;
-          case "svelte":
-            ext = "svelte";
-            break;
-          default:
-            ext = "html";
-        }
-
+        const ext = getExtension(framework);
         const filePath = path.join(outputDir, `${componentName}.${ext}`);
         fs.writeFileSync(filePath, code);
       }

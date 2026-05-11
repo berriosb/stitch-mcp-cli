@@ -33,7 +33,7 @@ if (process.argv.length <= 2 && !process.stdin.isTTY) {
   program
     .name("stitch-mcp-cli")
     .description("CLI + MCP proxy para Google Stitch con scaffolding multi-framework")
-    .version("0.1.6");
+    .version("0.1.12");
 
   program
     .command("auth")

@@ -63,7 +63,7 @@ const SyncScreenSchema = z.object({
 
 const ExportFrameworkSchema = z.object({
   projectId: z.string().describe("Stitch project ID"),
-  framework: z.enum(["react", "vue", "svelte", "nextjs", "vanilla"]).default("react").describe("Target framework"),
+  framework: z.enum(["react", "vue", "svelte", "nextjs", "nuxt", "solid", "angular", "vanilla"]).default("react").describe("Target framework"),
   output: z.string().optional().default("./stitch-export").describe("Output directory"),
   routes: z.string().optional().describe("Comma-separated routes for Next.js")
 });

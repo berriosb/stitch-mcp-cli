@@ -5,13 +5,14 @@ export async function isOnline(): Promise<boolean> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
     
-    const response = await fetch(`${STITCH_HOST}/mcp`, {
+    const response = await fetch(`${STITCH_HOST}/v1/projects`, {
       method: "GET",
+      headers: { "Content-Type": "application/json" },
       signal: controller.signal,
     });
     
     clearTimeout(timeout);
-    return response.ok || response.status === 405;
+    return true; // any response (including 401/403) means reachable
   } catch {
     return false;
   }
