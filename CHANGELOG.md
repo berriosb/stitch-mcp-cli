@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.1](https://github.com/berriosb/stitch-mcp-cli/compare/v0.2.0...v0.2.1) (2026-06-08)
+
+
+### Bug Fixes
+
+* **ci:** use OIDC provenance for npm publishing ([fa5dc6e](https://github.com/berriosb/stitch-mcp-cli/commit/fa5dc6e9703a6ddec901172368b7bfe873a1c7eb))
+
 ## [0.2.0](https://github.com/berriosb/stitch-mcp-cli/compare/v0.1.12...v0.2.0) (2026-06-08)
 
 
