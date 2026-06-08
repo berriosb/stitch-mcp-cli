@@ -10,6 +10,8 @@ import { watch } from "../commands/watch.js";
 import { cache } from "../commands/cache.js";
 import { evalCmd } from "../commands/eval.js";
 import { designMd } from "../commands/design-md.js";
+import { createProject } from "../commands/create-project.js";
+import { upload } from "../commands/upload.js";
 import { closeStitchClient } from "../lib/stitch-client.js";
 
 let isShuttingDown = false;
@@ -33,7 +35,7 @@ if (process.argv.length <= 2 && !process.stdin.isTTY) {
   program
     .name("stitch-mcp-cli")
     .description("CLI + MCP proxy para Google Stitch con scaffolding multi-framework")
-    .version("0.1.12");
+    .version("0.2.0");
 
   program
     .command("auth")
@@ -53,11 +55,19 @@ if (process.argv.length <= 2 && !process.stdin.isTTY) {
     .action(projects as any);
 
   program
+    .command("create-project")
+    .description("Crear un nuevo proyecto en Stitch")
+    .option("--title <title>", "Título del proyecto")
+    .action(createProject as any);
+
+  program
     .command("generate")
     .description("Generar pantalla desde prompt")
     .argument("<prompt>", "Prompt de diseño")
     .option("--project-id <id>", "ID del proyecto")
     .option("--device <type>", "Tipo de dispositivo (mobile|desktop|tablet)")
+    .option("--model-id <model>", "Modelo a usar (GEMINI_3_PRO|GEMINI_3_FLASH|GEMINI_3_1_PRO)")
+    .option("--name <name>", "Nombre de la pantalla")
     .action(generate as any);
 
   program
@@ -78,6 +88,15 @@ if (process.argv.length <= 2 && !process.stdin.isTTY) {
     .action(exportCmd as any);
 
   program.command("watch").description("Watch mode").action(watch as any);
+
+  program
+    .command("upload")
+    .description("Subir imagen o archivo HTML a un proyecto")
+    .argument("<project-id>", "ID del proyecto")
+    .argument("<file>", "Ruta del archivo (PNG, JPG, WEBP, HTML)")
+    .option("--title <title>", "Título para la pantalla")
+    .option("--no-create-screen-instances", "No crear instancias de pantalla")
+    .action(upload as any);
 
   program
     .command("cache")

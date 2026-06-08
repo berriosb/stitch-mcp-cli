@@ -12,11 +12,28 @@ export interface ScreenMetadata {
 }
 
 export interface DesignTheme {
-  colorMode: string;
-  font: string;
-  roundness: string;
-  customColor: string;
-  saturation: number;
+  colorMode?: string;
+  font?: string;
+  headlineFont?: string;
+  bodyFont?: string;
+  labelFont?: string;
+  roundness?: string;
+  customColor?: string;
+  saturation?: number;
+  colorVariant?: string;
+  overridePrimaryColor?: string;
+  overrideSecondaryColor?: string;
+  overrideTertiaryColor?: string;
+  overrideNeutralColor?: string;
+  backgroundLight?: string;
+  backgroundDark?: string;
+  namedColors?: Record<string, string>;
+  spacingScale?: number;
+  spacing?: Record<string, string>;
+  designMd?: string;
+  description?: string;
+  preset?: string;
+  typography?: Record<string, { fontFamily?: string; fontSize?: string; fontWeight?: string; letterSpacing?: string; lineHeight?: string }>;
 }
 
 export interface StitchMetadata {

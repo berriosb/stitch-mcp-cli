@@ -87,8 +87,27 @@ async function runEval(qaPairs: QAPair[]): Promise<EvalStats> {
           break;
         }
         case "list_design_systems": {
-          result.actualAnswer = "Design systems API not available in current SDK version";
-          result.passed = false;
+          const dsProjMatch = qa.question.match(/proyecto (?:con ID )?\[([^\]]+)\]/);
+          if (dsProjMatch) {
+            const dsProject = stitch.project(dsProjMatch[1]);
+            const designSystems = await dsProject.listDesignSystems();
+            result.actualAnswer = designSystems.length > 0
+              ? designSystems.map((ds: any) => `${ds.assetId || ds.id}`).join(", ")
+              : "No design systems";
+            result.passed = true;
+          } else {
+            const projects = await stitch.projects();
+            if (projects.length > 0) {
+              const designSystems = await projects[0].listDesignSystems();
+              result.actualAnswer = designSystems.length > 0
+                ? designSystems.map((ds: any) => `${ds.assetId || ds.id}`).join(", ")
+                : "No design systems";
+              result.passed = true;
+            } else {
+              result.actualAnswer = "No projects available";
+              result.passed = false;
+            }
+          }
           break;
         }
         case "get_project": {

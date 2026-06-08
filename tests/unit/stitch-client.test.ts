@@ -64,7 +64,7 @@ describe("stitch-client", () => {
       }));
       const { getStitchClient: freshGetClient } = await import("../../src/lib/stitch-client.js");
       
-      expect(() => freshGetClient()).toThrow("API key no configurada");
+      expect(() => freshGetClient()).toThrow("Credenciales no configuradas");
     });
   });
 });

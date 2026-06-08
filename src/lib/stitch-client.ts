@@ -1,10 +1,13 @@
-import { Stitch, StitchToolClient } from "@google/stitch-sdk";
+import { Stitch, StitchToolClient, StitchError } from "@google/stitch-sdk";
 import { loadSecureConfig } from "./secure-config.js";
+
+export { StitchError };
 
 export interface StitchClient {
   stitch: Stitch;
   client: StitchToolClient;
   callTool: <T = any>(name: string, args: Record<string, unknown>) => Promise<T>;
+  httpPost: <T = any>(path: string, body: unknown) => Promise<T>;
 }
 
 let cachedClient: StitchClient | null = null;
@@ -16,21 +19,25 @@ export function getStitchClient(): StitchClient {
 
   const { apiKey: configApiKey } = loadSecureConfig();
   const apiKey = configApiKey || process.env.STITCH_API_KEY;
+  const accessToken = process.env.STITCH_ACCESS_TOKEN;
 
-  if (!apiKey) {
+  if (!apiKey && !accessToken) {
     throw new Error(
-      "API key no configurada. Ejecuta: stitch-mcp-cli auth --api-key <tu-api-key>"
+      "Credenciales no configuradas. Ejecuta: stitch-mcp-cli auth --api-key <tu-api-key> o configura STITCH_ACCESS_TOKEN"
     );
   }
 
-  process.env.STITCH_API_KEY = apiKey;
+  if (apiKey) {
+    process.env.STITCH_API_KEY = apiKey;
+  }
 
-  const client = new StitchToolClient({ apiKey });
+  const client = new StitchToolClient({ apiKey, accessToken });
 
   cachedClient = {
     stitch: new Stitch(client),
     client,
     callTool: (name, args) => client.callTool(name, args),
+    httpPost: (path, body) => client.httpPost(path, body),
   };
 
   return cachedClient;

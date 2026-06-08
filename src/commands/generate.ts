@@ -9,14 +9,15 @@ import {
 import { GenerateOptionsSchema, validateOrThrow } from "../lib/schemas.js";
 
 type DeviceType = "mobile" | "desktop" | "tablet";
+type ModelId = "GEMINI_3_PRO" | "GEMINI_3_FLASH" | "GEMINI_3_1_PRO";
 
 export async function generate(
   prompt: string,
-  options: { projectId?: string; device?: DeviceType; name?: string }
+  options: { projectId?: string; device?: DeviceType; modelId?: ModelId; name?: string }
 ) {
   if (!prompt) {
     console.error("Error: prompt requerido");
-    console.error("Usage: stitch-mcp-cli generate <prompt> [--project-id <id>] [--device mobile|desktop|tablet] [--name <screen-name>]");
+    console.error("Usage: stitch-mcp-cli generate <prompt> [--project-id <id>] [--device mobile|desktop|tablet] [--model-id <model>] [--name <screen-name>]");
     process.exit(1);
   }
 
@@ -39,7 +40,7 @@ export async function generate(
       } else {
         const projects = await stitch.projects();
         if (projects.length === 0) {
-          console.error("No hay proyectos. Crea uno primero en https://stitch.withgoogle.com");
+          console.error("No hay proyectos. Crea uno primero con: stitch-mcp-cli create-project --title <nombre>");
           process.exit(1);
         }
         project = projects[0];
@@ -61,7 +62,8 @@ export async function generate(
 
     console.log("Generando pantalla...");
     const deviceType = validated.device?.toUpperCase() as "MOBILE" | "DESKTOP" | "TABLET" | "AGNOSTIC" | "DEVICE_TYPE_UNSPECIFIED" | undefined;
-    const screen = await project.generate(prompt, deviceType);
+    const modelId = validated.modelId as "GEMINI_3_PRO" | "GEMINI_3_FLASH" | "GEMINI_3_1_PRO" | "MODEL_ID_UNSPECIFIED" | undefined;
+    const screen = await project.generate(prompt, deviceType, modelId);
 
     const screenName = validated.name || `screen_${Date.now()}`;
     const screenMetadata: ScreenMetadata = {
@@ -79,6 +81,7 @@ export async function generate(
     console.log(`   Project ID: ${screen.projectId}`);
     console.log(`   Screen ID: ${screen.screenId}`);
     console.log(`   Screen Name: ${screenName}`);
+    if (validated.modelId) console.log(`   Model: ${validated.modelId}`);
     console.log(`   Metadata actualizada: .stitch/metadata.json`);
     console.log("\nPara obtener el HTML:");
     console.log(`   stitch-mcp-cli sync ${screen.projectId} ${screen.screenId}`);
