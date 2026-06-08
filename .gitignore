@@ -77,11 +77,11 @@ stitch-mcp-cli.config.json
 # Version config
 .versionrc
 
-# Evaluations
-evaluations/
+# Evaluations (results only)
+evaluations/*.json
+evaluations/results/
 
 # Documentation (local only)
 AGENTS.md
-CHANGELOG.md
 Guía para construir un híbrido Stitch MCP + CLI (stitch-mcp-cli).md
 planificacion proyecto.md
