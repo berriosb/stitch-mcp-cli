@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
+import readline from "readline";
 import { execSync } from "child_process";
 import { getConfigPath } from "../lib/config.js";
 
@@ -63,11 +64,68 @@ args = ["stitch-mcp-cli"]
   }, null, 2);
 }
 
-/**
- * Auto-configure MCP server in supported IDEs (Cursor, Claude Code, VS Code, etc.)
- * @param options.editor - Filter to specific editor name
- * @param options.verbose - Show detailed output
- */
+const SKILL_NAME = "stitch-design-taste";
+const AGENTS_SKILLS_DIR = path.join(os.homedir(), ".agents", "skills");
+const SKILL_TARGET_DIR = path.join(AGENTS_SKILLS_DIR, SKILL_NAME);
+
+function getSkillSourcePath(): string | null {
+  const candidates = [
+    path.join(__dirname, "..", "..", "skills", SKILL_NAME, "SKILL.md"),
+    path.join(process.cwd(), "skills", SKILL_NAME, "SKILL.md"),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+function isSkillInstalled(): boolean {
+  return fs.existsSync(path.join(SKILL_TARGET_DIR, "SKILL.md"));
+}
+
+function installSkill(): boolean {
+  const sourcePath = getSkillSourcePath();
+  if (!sourcePath) {
+    console.log("  No se encontró el archivo SKILL.md para instalar.");
+    return false;
+  }
+
+  if (!fs.existsSync(AGENTS_SKILLS_DIR)) {
+    fs.mkdirSync(AGENTS_SKILLS_DIR, { recursive: true });
+  }
+
+  if (!fs.existsSync(SKILL_TARGET_DIR)) {
+    fs.mkdirSync(SKILL_TARGET_DIR, { recursive: true });
+  }
+
+  const skillContent = fs.readFileSync(sourcePath, "utf-8");
+  fs.writeFileSync(path.join(SKILL_TARGET_DIR, "SKILL.md"), skillContent);
+
+  return true;
+}
+
+function promptMode(): Promise<"mcp" | "mcp+skill"> {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    console.log("\n? Qué quieres instalar?");
+    console.log("  1) Solo MCP server");
+    console.log("  2) MCP server + Skill de diseño (stitch-design-taste)");
+    rl.question("\n  Selecciona [1/2] (default: 1): ", (answer) => {
+      rl.close();
+      const choice = answer.trim();
+      if (choice === "2") {
+        resolve("mcp+skill");
+      } else {
+        resolve("mcp");
+      }
+    });
+  });
+}
+
 export async function setup(options: { editor?: string; verbose?: boolean }) {
   if (fs.existsSync(getConfigPath())) {
     console.log("i Usando API key de ~/.stitch-mcp-cli/config.json (encriptada)");
@@ -100,6 +158,13 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
     return;
   }
 
+  let mode: "mcp" | "mcp+skill" = "mcp";
+  if (process.stdin.isTTY && !isSkillInstalled()) {
+    mode = await promptMode();
+  } else if (isSkillInstalled()) {
+    console.log("i Skill stitch-design-taste ya instalada en ~/.agents/skills/");
+  }
+
   let configured = 0;
 
   for (const editor of targetEditors) {
@@ -109,8 +174,6 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
     if (!fs.existsSync(configDir)) {
       fs.mkdirSync(configDir, { recursive: true });
     }
-
-    const newConfig = getMcpConfig(editor);
 
     if (editor.format === "json") {
       let existingConfig: Record<string, unknown> = {};
@@ -140,7 +203,6 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
         }
       }
 
-      // Remove invalid mcpServers key if present (from old config)
       delete existingConfig.mcpServers;
 
       const mcp = (existingConfig.mcp as Record<string, unknown>) || {};
@@ -151,15 +213,12 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
       };
       existingConfig.mcp = mcp;
 
-      // Ensure $schema is present
       if (!existingConfig.$schema) {
         existingConfig.$schema = "https://opencode.ai/config.json";
       }
 
       fs.writeFileSync(editorConfigPath, JSON.stringify(existingConfig, null, 2));
     } else {
-      // Codex CLI uses TOML format
-      // Format: [mcp_servers.<name>] with command, args, env_vars
       const tomlSection = [
         "",
         "[mcp_servers.stitch]",
@@ -170,7 +229,6 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
       
       if (fs.existsSync(editorConfigPath)) {
         const existing = fs.readFileSync(editorConfigPath, "utf-8");
-        // Remove old stitch config if exists
         const cleaned = existing.replace(/\n?\[\[?mcp_servers\.stitch\]\]?[\s\S]*?(?=\n\[|$)/g, "");
         fs.writeFileSync(editorConfigPath, cleaned + tomlSection);
       } else {
@@ -186,9 +244,19 @@ export async function setup(options: { editor?: string; verbose?: boolean }) {
     }
   }
 
+  if (mode === "mcp+skill") {
+    console.log("\nInstalando skill stitch-design-taste...");
+    if (installSkill()) {
+      console.log(`OK Skill instalada en ${SKILL_TARGET_DIR}`);
+    }
+  }
+
   console.log(`\nConfigurado en ${configured} IDE(s)`);
   console.log("\nPróximos pasos:");
   console.log("1. Si no tienes API key: stitch-mcp-cli auth --api-key <tu-key>");
   console.log("2. Reinicia tu IDE");
   console.log("3. El servidor MCP se iniciará automáticamente");
+  if (mode === "mcp+skill") {
+    console.log("4. La skill estará disponible para tu agente automáticamente");
+  }
 }
