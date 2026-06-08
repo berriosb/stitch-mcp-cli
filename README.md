@@ -437,10 +437,32 @@ El comando `setup` detecta y configura automáticamente todos los IDEs instalado
 
 ```bash
 stitch-mcp-cli setup
-
-# Configurar solo IDEs específicos
-stitch-mcp-cli setup --editors cursor,claude,opencode
 ```
+
+Al ejecutar setup se te preguntará:
+
+```
+? Qué quieres instalar?
+  1) Solo MCP server
+  2) MCP server + Skill de diseño (stitch-design-taste)
+```
+
+- **Solo MCP server**: Configura el servidor MCP en tus IDEs
+- **MCP server + Skill**: Además instala la skill `stitch-design-taste` en `~/.agents/skills/`, que guía a los agentes con criterios de diseño premium para Stitch (anti-slop, calibración de colores, tipografía, componentes, layout y motion)
+
+## Skill de Diseño (stitch-design-taste)
+
+La skill se instala en `~/.agents/skills/stitch-design-taste/` y es leída automáticamente por OpenCode, Antigravity, Claude Code, Kilo Code, Codex CLI y otros agentes compatibles.
+
+**Qué hace:**
+- Criterios anti-slop para evitar interfaces genéricas de IA
+- Cómo calibrar paletas de colores (no colores fijos — metodología)
+- Pairing de tipografía y jerarquía
+- Specs de componentes: botones, cards, inputs, loaders, empty states
+- Patrones de layout y motion philosophy
+- Integración con `stitch-mcp-cli design-md` y los MCP tools
+
+Los valores reales salen del `DESIGN.md` de cada proyecto. La skill le enseña al agente a tomar buenas decisiones con esos valores.
 
 ## Desarrollo
 
