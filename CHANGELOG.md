@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.2](https://github.com/berriosb/stitch-mcp-cli/compare/v0.2.1...v0.2.2) (2026-06-08)
+
+
+### Bug Fixes
+
+* **ci:** remove NPM_TOKEN, use OIDC only ([c9a92a1](https://github.com/berriosb/stitch-mcp-cli/commit/c9a92a1bb9a73d54060efebcaaef31e8cb09b11b))
+
 ### [0.2.1](https://github.com/berriosb/stitch-mcp-cli/compare/v0.2.0...v0.2.1) (2026-06-08)
 
 
