@@ -1,11 +1,19 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.2.0](https://github.com/berriosb/stitch-mcp-cli/compare/v0.1.12...v0.2.0) (2026-06-08)
 
-## [Unreleased]
+
+### Features
+
+* add stitch-design-taste skill and interactive setup prompt ([ca8e4d9](https://github.com/berriosb/stitch-mcp-cli/commit/ca8e4d9e8b1b61b403469cff7726b926442ec61d))
+* upgrade stitch-sdk to 0.3.5 with new MCP tools and CLI commands ([8e1c500](https://github.com/berriosb/stitch-mcp-cli/commit/8e1c5001d081557ce8ca07b0464d16dcd20416b9))
+
+
+### Bug Fixes
+
+* full framework support in MCP server and CLI export ([62f26e1](https://github.com/berriosb/stitch-mcp-cli/commit/62f26e11b082b5d6b0015dd989997110ef3adab5))
 
 ## [1.0.0] - YYYY-MM-DD
 
