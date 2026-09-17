@@ -1,6 +1,6 @@
 {
   "name": "stitch-mcp-cli",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Google Stitch MCP server + CLI: export UI designs to React, Vue, Svelte, Next.js and 5+ frameworks, with auto-config for Cursor, Claude Code, OpenCode, Antigravity, Zed and VS Code.",
   "type": "module",
   "main": "./dist/index.js",

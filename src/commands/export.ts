@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
+import type { Screen } from "@google/stitch-sdk";
 import { getStitchClient } from "../lib/stitch-client.js";
+import { resolveHtml } from "../lib/resolve-html.js";
 import { transformToFramework } from "../lib/template-engine.js";
 import { getExtension, getSupportedFrameworks, isValidFramework } from "../lib/framework-mapper.js";
 
@@ -13,6 +15,15 @@ function routeToFilePath(route: string): string {
 
 function parseRoutes(routesStr: string): string[] {
   return routesStr.split(",").map((r) => r.trim());
+}
+
+function parseRouteScreenMap(
+  routesStr: string
+): Array<{ route: string; screenId?: string }> {
+  return routesStr.split(",").map((raw) => {
+    const [route, screenId] = raw.split("=").map((s) => s.trim());
+    return { route, screenId: screenId || undefined };
+  });
 }
 
 export async function exportCmd(
@@ -46,12 +57,20 @@ export async function exportCmd(
     console.log(`Exportando ${screens.length} pantallas a ${framework}...`);
 
     if (framework === "nextjs" && routesStr) {
-      const routes = parseRoutes(routesStr);
-      console.log(`   Rutas especificadas: ${routes.join(", ")}`);
+      const entries = parseRouteScreenMap(routesStr);
+      console.log(`   Rutas especificadas: ${entries.length}`);
 
-      for (const route of routes) {
-        const screen = screens.length > 0 ? screens[0] : null;
-        const html = screen ? await screen.getHtml() : "<div></div>";
+      const screensById = new Map<string, Screen>();
+      for (const s of screens) screensById.set(s.screenId, s);
+
+      for (let i = 0; i < entries.length; i++) {
+        const { route, screenId } = entries[i];
+        let screen: Screen | undefined = screenId ? screensById.get(screenId) : undefined;
+        if (!screen) {
+          // Fallback to round-robin distribution across available screens
+          screen = screens.length > 0 ? screens[i % screens.length] : undefined;
+        }
+        const html = screen ? await resolveHtml(screen) : "<div></div>";
         const componentName = `Page${route.replace(/[\/\-]/g, "_") || "Home"}`;
         const code = await transformToFramework({ framework, componentName, html });
 
@@ -66,11 +85,11 @@ export async function exportCmd(
         fs.writeFileSync(filePath, code);
       }
 
-      console.log(`OK Exportado ${routes.length} rutas a ${outputDir}`);
+      console.log(`OK Exportado ${entries.length} rutas a ${outputDir}`);
       console.log(`   Framework: ${framework}`);
     } else {
       for (const screen of screens) {
-        const html = await screen.getHtml();
+        const html = await resolveHtml(screen);
         const componentName = `Screen${screen.screenId.slice(0, 8)}`;
         const code = await transformToFramework({ framework, componentName, html });
         const ext = getExtension(framework);

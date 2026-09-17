@@ -1,0 +1,13 @@
+import type { Meta, StoryObj } from "@storybook/vue3";
+import <%= componentName %> from "./<%= componentName %>.vue";
+
+const meta = {
+  title: "Stitch/<%= componentName %>",
+  component: <%= componentName %>,
+  tags: ["autodocs"],
+} satisfies Meta<typeof <%= componentName %>>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {};

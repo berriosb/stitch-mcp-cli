@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.3](https://github.com/berriosb/stitch-mcp-cli/compare/v0.2.2...v0.2.3) (2026-09-15)
+
+
+### Bug Fixes
+
+* **release:** switch to OIDC-only npm publish (drop NPM_TOKEN env, keep provenance)
+* **version:** sync `PKG_VERSION` from package.json — MCP `serverInfo` and CLI `--version` no longer report stale 2.0.0 / 0.2.0
+* **export:** Next.js `--routes` maps each route to a distinct screen (was always screen[0]); supports `route=screenId` syntax
+* **resolveHtml:** log warning when Stitch screen HTML fetch fails instead of returning `<div></div>` silently; add 15s timeout
+* **template-engine:** fail-fast in `renderStorybookStory` when framework is unsupported or template missing
+
+
+### Features
+
+* **stitch_to_storybook:** new MCP tool + `stitch-mcp-cli storybook <project-id>` command — exports a Stitch project to ready-to-run Storybook 8 stories for React, Next.js, Vue 3, Nuxt 3, Svelte 5, SvelteKit. Writes one component + one story per screen plus a minimal `.storybook/main.ts` + `preview.ts`. Run `npx storybook@latest init && npx storybook dev` after to boot.
+
+
 ### [0.2.2](https://github.com/berriosb/stitch-mcp-cli/compare/v0.2.1...v0.2.2) (2026-06-08)
 
 

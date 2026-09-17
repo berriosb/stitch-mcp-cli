@@ -12,7 +12,12 @@ import { evalCmd } from "../commands/eval.js";
 import { designMd } from "../commands/design-md.js";
 import { createProject } from "../commands/create-project.js";
 import { upload } from "../commands/upload.js";
+import { storybook } from "../commands/storybook.js";
 import { closeStitchClient } from "../lib/stitch-client.js";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const PKG_VERSION: string = (require("../../package.json") as { version: string }).version;
 
 let isShuttingDown = false;
 
@@ -35,7 +40,7 @@ if (process.argv.length <= 2 && !process.stdin.isTTY) {
   program
     .name("stitch-mcp-cli")
     .description("CLI + MCP proxy para Google Stitch con scaffolding multi-framework")
-    .version("0.2.0");
+    .version(PKG_VERSION);
 
   program
     .command("auth")
@@ -120,6 +125,14 @@ if (process.argv.length <= 2 && !process.stdin.isTTY) {
     .option("--output <file>", "Archivo de salida")
     .option("--sync", "Sincronizar pantallas")
     .action(designMd as any);
+
+  program
+    .command("storybook")
+    .description("Generar Storybook stories desde un proyecto Stitch")
+    .argument("<project-id>", "ID del proyecto")
+    .option("--framework <name>", "Framework destino (react|nextjs|vue|nuxt|svelte|sveltekit)")
+    .option("--output <dir>", "Directorio de salida")
+    .action(storybook as any);
 
   program.parse();
 }
