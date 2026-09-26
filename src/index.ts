@@ -14,6 +14,16 @@ import type { CachedProject, CachedScreen } from "./types/index.js";
 import type { Screen } from "@google/stitch-sdk";
 import fs from "fs";
 import path from "path";
+import { createRequire } from "module";
+import { resolveHtml } from "./lib/resolve-html.js";
+import {
+  renderStorybookStory,
+  getStorybookExtension,
+  getStorybookSupportedFrameworks,
+} from "./lib/template-engine.js";
+
+const require = createRequire(import.meta.url);
+const PKG_VERSION: string = (require("../package.json") as { version: string }).version;
 
 function formatStitchError(error: unknown): string {
   if (error instanceof StitchError) {
@@ -22,21 +32,6 @@ function formatStitchError(error: unknown): string {
     return msg;
   }
   return `Error: ${error instanceof Error ? error.message : String(error)}`;
-}
-
-async function resolveHtml(screen: Screen): Promise<string> {
-  const raw = await screen.getHtml();
-  if (!raw) return "<div></div>";
-  if (raw.startsWith("http")) {
-    try {
-      const resp = await fetch(raw);
-      if (!resp.ok) return "<div></div>";
-      return await resp.text();
-    } catch {
-      return "<div></div>";
-    }
-  }
-  return raw;
 }
 
 const config = loadSecureConfig();
@@ -50,7 +45,7 @@ if (!apiKey && !accessToken) {
 
 const server = new McpServer({
   name: "stitch-mcp",
-  version: "2.0.0"
+  version: PKG_VERSION
 });
 
 // ─── Schema definitions ───────────────────────────────────────────────
@@ -146,6 +141,15 @@ const CacheClearSchema = z.object({});
 
 const CacheSyncSchema = z.object({
   projectId: z.string().describe("Project ID to sync to cache")
+});
+
+const StorybookExportSchema = z.object({
+  projectId: z.string().describe("Stitch project ID"),
+  framework: z.enum(["react", "nextjs", "vue", "nuxt", "svelte", "sveltekit"])
+    .default("react")
+    .describe("Target framework for the Storybook stories"),
+  output: z.string().optional().default("./stitch-stories")
+    .describe("Output directory for stories and components")
 });
 
 // ─── Tool: stitch_list_projects ───────────────────────────────────────
@@ -691,6 +695,75 @@ server.registerTool(
       };
     } catch (error) {
       return { content: [{ type: "text", text: formatStitchError(error) }] };
+    }
+  }
+);
+
+// ─── Tool: stitch_to_storybook ─────────────────────────────────────────
+
+server.registerTool(
+  "stitch_to_storybook",
+  {
+    title: "Export to Storybook",
+    description: `Export a Stitch project to Storybook stories for a given framework (${getStorybookSupportedFrameworks().join(", ")}). Writes one component file + one story file per screen, plus a minimal .storybook/ configuration.`,
+    inputSchema: StorybookExportSchema,
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+  },
+  async ({ projectId, framework, output }) => {
+    const toolLogger = logger.child({ tool: "stitch_to_storybook" });
+    const rateLimit = checkRateLimit("stitch_to_storybook");
+    if (!rateLimit.allowed) {
+      return { content: [{ type: "text", text: `Rate limit exceeded. Retry after ${Math.ceil((rateLimit.retryAfterMs || 0) / 1000)}s` }] };
+    }
+
+    try {
+      toolLogger.info({ projectId, framework, output }, "Exporting to Storybook");
+      const { stitch } = getStitchClient();
+      const project = stitch.project(projectId);
+      const screens = await project.screens();
+
+      const outDir = path.resolve(output);
+      if (!fs.existsSync(outDir)) {
+        fs.mkdirSync(outDir, { recursive: true });
+      }
+
+      const filesWritten: Array<{ type: "component" | "story"; path: string }> = [];
+
+      for (const screen of screens) {
+        const html = await resolveHtml(screen);
+        const componentName = `Stitch${screen.screenId.slice(0, 8)}`;
+        const compExt =
+          framework === "vue" || framework === "nuxt" ? "vue" :
+          framework === "svelte" || framework === "sveltekit" ? "svelte" :
+          "tsx";
+        const componentCode = await transformToFramework({ framework, componentName, html });
+        const componentPath = path.join(outDir, `${componentName}.${compExt}`);
+        fs.writeFileSync(componentPath, componentCode);
+        filesWritten.push({ type: "component", path: componentPath });
+
+        const storyCode = await renderStorybookStory({ framework, componentName });
+        const storyExt = getStorybookExtension(framework);
+        const storyPath = path.join(outDir, `${componentName}.${storyExt}`);
+        fs.writeFileSync(storyPath, storyCode);
+        filesWritten.push({ type: "story", path: storyPath });
+      }
+
+      return {
+        content: [{
+          type: "text",
+          text: `Storybook exportado: ${screens.length} pantallas → ${filesWritten.length} archivos en ${outDir}\nPróximo paso: cd ${outDir} && npx storybook@latest init && npx storybook dev`
+        }],
+        structuredContent: {
+          projectId,
+          framework,
+          output: outDir,
+          screenCount: screens.length,
+          files: filesWritten
+        }
+      };
+    } catch (error) {
+      toolLogger.error({ error: error instanceof Error ? error.message : String(error) }, "Storybook export failed");
+      return { content: [{ type: "text", text: `Error al exportar Storybook: ${formatStitchError(error)}` }] };
     }
   }
 );

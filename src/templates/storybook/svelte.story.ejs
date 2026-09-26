@@ -1,0 +1,13 @@
+import type { Meta, StoryObj } from "@storybook/svelte";
+import <%= componentName %> from "./<%= componentName %>.svelte";
+
+const meta = {
+  title: "Stitch/<%= componentName %>",
+  component: <%= componentName %>,
+  tags: ["autodocs"],
+} satisfies Meta<typeof <%= componentName %>>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {};
