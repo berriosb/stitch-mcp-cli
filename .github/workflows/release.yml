@@ -63,7 +63,22 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      - name: Check if already published to npm
+        id: check_published
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          PUBLISHED_VERSION=$(npm view stitch-mcp-cli version 2>/dev/null || echo "")
+          echo "current=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "published=$PUBLISHED_VERSION" >> "$GITHUB_OUTPUT"
+          if [ "$CURRENT_VERSION" = "$PUBLISHED_VERSION" ]; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "Version $CURRENT_VERSION is already published to npm. Skipping publish step."
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish to npm (OIDC provenance)
+        if: steps.check_published.outputs.already_published != 'true'
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
