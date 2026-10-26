@@ -1,16 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@google/stitch-sdk", () => ({
-  Stitch: vi.fn().mockImplementation((client) => ({
-    projects: vi.fn(),
-    project: vi.fn(),
-    client,
-  })),
-  StitchToolClient: vi.fn().mockImplementation(() => ({
-    listTools: vi.fn(),
-    callTool: vi.fn(),
-    close: vi.fn(),
-  })),
+  Stitch: vi.fn().mockImplementation(function (this: any, client: unknown) {
+    return {
+      projects: vi.fn(),
+      project: vi.fn(),
+      client,
+    };
+  }),
+  StitchToolClient: vi.fn().mockImplementation(function (this: any) {
+    return {
+      listTools: vi.fn(),
+      callTool: vi.fn(),
+      close: vi.fn(),
+    };
+  }),
 }));
 
 describe("stitch-client", () => {
@@ -25,16 +29,20 @@ describe("stitch-client", () => {
         loadSecureConfig: vi.fn().mockReturnValue({ apiKey: "test-api-key" }),
       }));
       vi.doMock("@google/stitch-sdk", () => ({
-        Stitch: vi.fn().mockImplementation((client) => ({
-          projects: vi.fn(),
-          project: vi.fn(),
-          client,
-        })),
-        StitchToolClient: vi.fn().mockImplementation(() => ({
-          listTools: vi.fn(),
-          callTool: vi.fn(),
-          close: vi.fn(),
-        })),
+        Stitch: vi.fn().mockImplementation(function (this: any, client: unknown) {
+          return {
+            projects: vi.fn(),
+            project: vi.fn(),
+            client,
+          };
+        }),
+        StitchToolClient: vi.fn().mockImplementation(function (this: any) {
+          return {
+            listTools: vi.fn(),
+            callTool: vi.fn(),
+            close: vi.fn(),
+          };
+        }),
       }));
       const { getStitchClient } = await import("../../src/lib/stitch-client.js");
       const client = getStitchClient();
@@ -51,16 +59,20 @@ describe("stitch-client", () => {
         loadSecureConfig: vi.fn().mockReturnValue({}),
       }));
       vi.doMock("@google/stitch-sdk", () => ({
-        Stitch: vi.fn().mockImplementation((client) => ({
-          projects: vi.fn(),
-          project: vi.fn(),
-          client,
-        })),
-        StitchToolClient: vi.fn().mockImplementation(() => ({
-          listTools: vi.fn(),
-          callTool: vi.fn(),
-          close: vi.fn(),
-        })),
+        Stitch: vi.fn().mockImplementation(function (this: any, client: unknown) {
+          return {
+            projects: vi.fn(),
+            project: vi.fn(),
+            client,
+          };
+        }),
+        StitchToolClient: vi.fn().mockImplementation(function (this: any) {
+          return {
+            listTools: vi.fn(),
+            callTool: vi.fn(),
+            close: vi.fn(),
+          };
+        }),
       }));
       const { getStitchClient: freshGetClient } = await import("../../src/lib/stitch-client.js");
       
