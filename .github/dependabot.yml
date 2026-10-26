@@ -1,0 +1,51 @@
+# Dependabot configuration for stitch-mcp-cli
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+#
+# Por que existe: sin este archivo nadie vigila el estado de las dependencias
+# ni de las GitHub Actions. Es lo que mantiene la flota al dia sin trabajo manual.
+#
+# Convenciones: berriosb/agent-fleet
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+    groups:
+      mcp-sdk:
+        patterns:
+          - "@modelcontextprotocol/sdk"
+          - "@google/stitch-sdk"
+      runtime:
+        patterns:
+          - "express"
+          - "commander"
+          - "dotenv"
+          - "ejs"
+          - "pino"
+          - "pino-pretty"
+          - "zod"
+      dev:
+        patterns:
+          - "typescript"
+          - "vitest"
+          - "tsx"
+          - "@types/*"
+          - "standard-version"
+    open-pull-requests-limit: 5
+
+  # Las GitHub Actions se mantienen solas. checkout/setup-node/setup-python
+  # estaban 3 majors atrasados en varios repos de la flota porque nadie
+  # vigila el ecosistema `github-actions`.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      actions:
+        patterns: ["*"]
+    open-pull-requests-limit: 3
